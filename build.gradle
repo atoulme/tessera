@@ -25,6 +25,31 @@ subprojects {
         ignoreFailures = true
         showViolations = true
     }
+
+    test {
+        jacoco {
+            append = false
+            version = "0.8.1"
+
+        }
+    }
+
+
+    jacocoTestCoverageVerification {
+
+        violationRules {
+
+            rule {
+                element = 'CLASS'
+                excludes = ['com.github.nexus.Launcher']
+                limit {
+                    minimum = 1.0
+                }
+            }
+
+        }
+    }
+
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
@@ -47,5 +72,15 @@ subprojects {
         testCompile group: 'org.mockito', name: 'mockito-core', version: '2.15.0'
         compileOnly group: 'javax.interceptor', name: 'javax.interceptor-api', version: '1.2.2'
     }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled true
+            html.enabled true
+            csv.enabled false
+        }
+    }
+
+    //check.dependsOn jacocoTestCoverageVerification
 }
 

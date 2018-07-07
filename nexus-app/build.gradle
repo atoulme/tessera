@@ -1,3 +1,15 @@
+import com.github.jengelman.gradle.plugins.shadow.transformers.AppendingTransformer
+
+plugins {
+    id 'com.benjaminsproule.swagger' version '1.0.0'
+    id 'com.github.johnrengelman.shadow' version '2.0.4'
+}
+
+apply plugin: 'com.benjaminsproule.swagger'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'application'
+
+mainClassName = 'com.github.nexus.Launcher'
 
 description = ''
 
@@ -38,3 +50,58 @@ dependencies {
     compileOnly group: 'javax.persistence', name: 'javax.persistence-api', version:'2.2'
     compileOnly group: 'javax.inject', name: 'javax.inject', version:'1'
 }
+
+swagger {
+    /*
+                        <apiSources>
+                        <apiSource>
+                            <schemes>
+                                <scheme>http</scheme>
+                                <scheme>https</scheme>
+                            </schemes>
+                            <host>localhost:8080</host>
+                            <basePath>/</basePath>
+                            <springmvc>false</springmvc>
+
+                            <info>
+                                <title>Nexus rest</title>
+                                <version>${project.version}</version>
+                            </info>
+
+                            <locations>
+                                <location>com.github.nexus.api</location>
+                            </locations>
+                            <templatePath>${basedir}/src/main/swagger/strapdown.html.hbs</templatePath>
+                            <outputPath>${project.build.directory}/generated-resources/swagger/swagger.html</outputPath>
+                            <swaggerDirectory>${project.build.directory}/generated-resources/swagger</swaggerDirectory>
+                        </apiSource>
+     */
+    apiSource {
+        springmvc = false
+        locations = ['com.github.nexus.api']
+        schemes = ['http', 'https']
+        host = 'localhost:8080'
+        basePath = '/'
+        info {
+            title = 'Nexus rest'
+            version = '1.0'
+        }
+        templatePath = "${project.rootDir}/src/main/swagger/strapdown.hbs"
+        swaggerDirectory = "${project.buildDir}/swagger"
+
+
+    }
+}
+
+shadowJar {
+    classifier = 'app'
+    mergeServiceFiles()
+    transform(AppendingTransformer) {
+        resource = 'META-INF/spring.handlers'
+    }
+    transform(AppendingTransformer) {
+        resource = 'META-INF/spring.schemas'
+    }
+}
+
+
