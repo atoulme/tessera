@@ -13,4 +13,4 @@ cache:
 
 
 script:
-- ./gradlew build -x :nexus-test:build :nexus-encryption-parent:nexus-encryption-kalium:build
+- ./gradlew build -x :nexus-test:build -x :nexus-encryption-parent:nexus-encryption-kalium:build
