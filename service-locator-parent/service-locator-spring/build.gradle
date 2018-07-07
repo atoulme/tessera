@@ -1,0 +1,11 @@
+
+description = 'service-locator-spring'
+dependencies {
+  compile project(':service-locator-parent:service-locator')
+    compile(group: 'org.springframework', name: 'spring-core', version:'5.0.6.RELEASE') {
+exclude(module: 'spring-jcl')
+    }
+    compile group: 'org.springframework', name: 'spring-beans', version:'5.0.6.RELEASE'
+    compile group: 'org.springframework', name: 'spring-context', version:'5.0.6.RELEASE'
+    runtime group: 'org.springframework', name: 'spring-orm', version:'5.0.6.RELEASE'
+}

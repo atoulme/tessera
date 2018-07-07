@@ -1,0 +1,6 @@
+
+description = 'nexus-encryption-kalium'
+dependencies {
+  compile project(':nexus-encryption-parent:nexus-encryption')
+    compile group: 'org.abstractj.kalium', name: 'kalium', version:'0.8.0'
+}

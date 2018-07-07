@@ -1,0 +1,40 @@
+
+description = ''
+
+configurations {
+  testCompile.extendsFrom runtime
+}
+
+dependencies {
+  compile project(':argon2')
+  compile project(':nexus-config-cli')
+  compile project(':nexus-encryption-parent:nexus-encryption')
+  compile project(':nexus-security')
+  compile project(':rest-server-parent:rest-server')
+  compile project(':service-locator-parent:service-locator')
+    compile group: 'javax.validation', name: 'validation-api', version:'1.1.0.Final'
+    compile group: 'javax.transaction', name: 'javax.transaction-api', version:'1.3'
+    compile group: 'org.glassfish', name: 'javax.json', version:'1.1.2'
+    compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:'1.59'
+    compile group: 'javax.servlet', name: 'javax.servlet-api', version:'4.0.1'
+    compile group: 'io.swagger', name: 'swagger-annotations', version:'1.5.4'
+  runtime project(':nexus-socket-parent:nexus-socket')
+  runtime project(':service-locator-parent:service-locator-spring')
+    runtime group: 'org.hibernate', name: 'hibernate-validator', version:'5.3.6.Final'
+    runtime group: 'com.h2database', name: 'h2', version:'1.4.197'
+    runtime group: 'commons-dbcp', name: 'commons-dbcp', version:'1.4'
+    runtime group: 'org.eclipse.persistence', name: 'org.eclipse.persistence.jpa', version:'2.7.1'
+    runtime group: 'org.eclipse.persistence', name: 'org.eclipse.persistence.extension', version:'2.7.1'
+    runtime group: 'org.slf4j', name: 'jcl-over-slf4j', version:'1.7.5'
+    runtime group: 'org.slf4j', name: 'jul-to-slf4j', version:'1.7.5'
+  runtime project(':nexus-socket-parent:junixsocket-adapter')
+    runtime group: 'de.mkammerer', name: 'argon2-jvm', version:'2.4'
+    runtime group: 'commons-cli', name: 'commons-cli', version:'1.4'
+    runtime group: 'org.glassfish', name: 'javax.el', version:'3.0.1-b10'
+  runtime project(':nexus-encryption-parent:nexus-encryption-jnacl')
+  runtime project(':rest-server-parent:jersey-server')
+    testCompile group: 'org.springframework', name: 'spring-test', version:'5.0.6.RELEASE'
+    testCompile group: 'com.openpojo', name: 'openpojo', version:'0.8.10'
+    compileOnly group: 'javax.persistence', name: 'javax.persistence-api', version:'2.2'
+    compileOnly group: 'javax.inject', name: 'javax.inject', version:'1'
+}

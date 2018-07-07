@@ -1,0 +1,6 @@
+
+description = 'nexus-encryption-jnacl'
+dependencies {
+  compile project(':nexus-encryption-parent:nexus-encryption')
+    compile group: 'eu.neilalexander', name: 'jnacl', version:'1.0.0'
+}

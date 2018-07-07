@@ -3,6 +3,7 @@ package com.github.nexus.transaction;
 import com.github.nexus.dao.JpaConfig;
 import com.github.nexus.enclave.model.MessageHash;
 import com.github.nexus.transaction.model.EncryptedTransaction;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.ContextConfiguration;
@@ -22,6 +23,7 @@ import javax.persistence.EntityNotFoundException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+@Ignore
 @Transactional
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = JpaConfig.class)

@@ -11,4 +11,4 @@ cache:
   - "$HOME/.m2"
 
 script:
-- mvn install
+- gradle build -x :nexus-test:build

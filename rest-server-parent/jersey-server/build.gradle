@@ -1,0 +1,16 @@
+
+description = 'jersey-server'
+dependencies {
+  compile project(':rest-server-parent:rest-server')
+  compile project(':nexus-config')
+  compile project(':nexus-security')
+    compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-grizzly2-http', version:'2.26'
+    compile group: 'org.glassfish.jersey.media', name: 'jersey-media-moxy', version:'2.26'
+    compile group: 'org.glassfish.jersey.core', name: 'jersey-server', version:'2.26'
+    compile group: 'org.glassfish.jersey.ext', name: 'jersey-bean-validation', version:'2.26'
+    compile group: 'org.slf4j', name: 'jul-to-slf4j', version:'1.7.5'
+    compile group: 'org.glassfish.grizzly', name: 'grizzly-http-servlet', version:'2.4.3'
+    compile group: 'org.glassfish.jersey.containers', name: 'jersey-container-servlet-core', version:'2.26'
+    compile group: 'javax.servlet', name: 'javax.servlet-api', version:'4.0.1'
+    runtime group: 'org.glassfish.jersey.inject', name: 'jersey-hk2', version:'2.26'
+}

@@ -1,0 +1,5 @@
+
+description = 'rest-server'
+dependencies {
+  compile project(':nexus-config')
+}

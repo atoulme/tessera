@@ -1,0 +1,11 @@
+
+description = 'nexus-test'
+dependencies {
+  compile project(':nexus-app')
+    compile group: 'org.codehaus.groovy', name: 'groovy-all', version:'2.4.5'
+}
+
+
+
+
+

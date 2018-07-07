@@ -1,0 +1,47 @@
+rootProject.name = 'nexus'
+
+enableFeaturePreview("IMPROVED_POM_SUPPORT")
+
+include ':argon2'
+include ':nexus-app'
+include ':nexus-security'
+include ':nexus-config'
+include ':nexus-config-cli'
+include ':nexus-test'
+include ':service-locator-parent:service-locator'
+include ':service-locator-parent:service-locator-spring'
+include ':service-locator-parent'
+include ':rest-server-parent:resteasy-server'
+include ':rest-server-parent:rest-server'
+include ':rest-server-parent:jersey-server'
+include ':rest-server-parent'
+include ':nexus-encryption-parent:nexus-encryption'
+include ':nexus-encryption-parent:nexus-encryption-jnacl'
+include ':nexus-encryption-parent:nexus-encryption-kalium'
+include ':nexus-encryption-parent'
+include ':nexus-test-util'
+include ':nexus-socket-parent:nexus-socket'
+include ':nexus-socket-parent:junixsocket-adapter'
+include ':nexus-socket-parent'
+
+project(':argon2').projectDir = "$rootDir/argon2" as File
+project(':nexus-app').projectDir = "$rootDir/nexus-app" as File
+project(':nexus-security').projectDir = "$rootDir/nexus-security" as File
+project(':nexus-config').projectDir = "$rootDir/nexus-config" as File
+project(':nexus-config-cli').projectDir = "$rootDir/nexus-config-cli" as File
+project(':nexus-test').projectDir = "$rootDir/nexus-test" as File
+project(':service-locator-parent:service-locator').projectDir = "$rootDir/service-locator-parent/service-locator" as File
+project(':service-locator-parent:service-locator-spring').projectDir = "$rootDir/service-locator-parent/service-locator-spring" as File
+project(':service-locator-parent').projectDir = "$rootDir/service-locator-parent" as File
+project(':rest-server-parent:resteasy-server').projectDir = "$rootDir/rest-server-parent/resteasy-server" as File
+project(':rest-server-parent:rest-server').projectDir = "$rootDir/rest-server-parent/rest-server" as File
+project(':rest-server-parent:jersey-server').projectDir = "$rootDir/rest-server-parent/jersey-server" as File
+project(':rest-server-parent').projectDir = "$rootDir/rest-server-parent" as File
+project(':nexus-encryption-parent:nexus-encryption').projectDir = "$rootDir/nexus-encryption-parent/nexus-encryption" as File
+project(':nexus-encryption-parent:nexus-encryption-jnacl').projectDir = "$rootDir/nexus-encryption-parent/nexus-encryption-jnacl" as File
+project(':nexus-encryption-parent:nexus-encryption-kalium').projectDir = "$rootDir/nexus-encryption-parent/nexus-encryption-kalium" as File
+project(':nexus-encryption-parent').projectDir = "$rootDir/nexus-encryption-parent" as File
+project(':nexus-test-util').projectDir = "$rootDir/nexus-test-util" as File
+project(':nexus-socket-parent:nexus-socket').projectDir = "$rootDir/nexus-socket-parent/nexus-socket" as File
+project(':nexus-socket-parent:junixsocket-adapter').projectDir = "$rootDir/nexus-socket-parent/junixsocket-adapter" as File
+project(':nexus-socket-parent').projectDir = "$rootDir/nexus-socket-parent" as File

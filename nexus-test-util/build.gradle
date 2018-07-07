@@ -1,0 +1,5 @@
+
+description = ''
+dependencies {
+    compileOnly group: 'org.glassfish', name: 'javax.el', version:'3.0.1-b10'
+}

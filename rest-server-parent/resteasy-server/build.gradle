@@ -1,0 +1,18 @@
+
+description = ''
+dependencies {
+  compile project(':rest-server-parent:rest-server')
+  compile project(':nexus-config')
+  compile project(':nexus-security')
+    compile(group: 'org.jboss.resteasy', name: 'resteasy-jaxrs', version:'3.0.8.Final') {
+exclude(module: 'httpclient')
+    }
+    compile group: 'org.jboss.resteasy', name: 'resteasy-jdk-http', version:'3.0.8.Final'
+    compile group: 'org.jboss.resteasy', name: 'resteasy-jaxb-provider', version:'3.0.8.Final'
+    compile group: 'org.jboss.resteasy', name: 'resteasy-jackson-provider', version:'3.0.8.Final'
+    compile group: 'org.jboss.resteasy', name: 'resteasy-client', version:'3.0.8.Final'
+    compile(group: 'org.apache.httpcomponents', name: 'fluent-hc', version:'4.3.5') {
+exclude(module: 'commons-logging')
+    }
+    runtime group: 'org.slf4j', name: 'jcl-over-slf4j', version:'1.7.5'
+}

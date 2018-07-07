@@ -1,0 +1,5 @@
+
+description = 'argon2'
+dependencies {
+    compile group: 'de.mkammerer', name: 'argon2-jvm', version:'2.4'
+}

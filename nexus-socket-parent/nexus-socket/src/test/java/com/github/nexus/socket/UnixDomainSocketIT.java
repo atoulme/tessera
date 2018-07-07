@@ -1,6 +1,7 @@
 package com.github.nexus.socket;
 
 import com.github.nexus.socket.client.UnixDomainClientSocket;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -9,7 +10,7 @@ import java.net.Socket;
 import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
+@Ignore
 public class UnixDomainSocketIT {
 
     private static final String CLIENT_MESSAGE_SENT = "Message sent by client";

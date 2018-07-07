@@ -1,0 +1,6 @@
+
+description = 'nexus-security'
+dependencies {
+  compile project(':nexus-config')
+    compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:'1.59'
+}

@@ -1,0 +1,14 @@
+
+description = ''
+dependencies {
+    compile group: 'org.glassfish', name: 'javax.json', version:'1.1.2'
+    compile group: 'javax.validation', name: 'validation-api', version:'1.1.0.Final'
+  compile project(':argon2')
+  compile project(':nexus-encryption-parent:nexus-encryption')
+    runtime group: 'org.eclipse.persistence', name: 'org.eclipse.persistence.moxy', version:'2.7.1'
+    runtime group: 'org.glassfish', name: 'javax.el', version:'3.0.1-b10'
+  runtime project(':nexus-encryption-parent:nexus-encryption-jnacl')
+    testCompile group: 'com.openpojo', name: 'openpojo', version:'0.8.10'
+  testCompile project(':nexus-test-util')
+    testCompile group: 'org.hibernate', name: 'hibernate-validator', version:'5.3.6.Final'
+}

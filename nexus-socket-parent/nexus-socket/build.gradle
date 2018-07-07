@@ -1,0 +1,6 @@
+
+description = 'nexus-socket'
+dependencies {
+  compile project(':nexus-config')
+  compile project(':nexus-security')
+}

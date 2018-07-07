@@ -9,3 +9,4 @@
 # IntelliJ project config
 *.iml
 /**/.idea/
+.DS_Store
