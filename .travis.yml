@@ -10,5 +10,7 @@ cache:
   directories:
   - "$HOME/.m2"
 
+
+
 script:
-- gradle build -x :nexus-test:build
+- ./gradlew build -x :nexus-test:build
