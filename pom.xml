@@ -21,6 +21,11 @@
         <spring.version>5.0.6.RELEASE</spring.version>
         <slf4j.version>1.7.5</slf4j.version>
         <eclipselink.version>2.7.1</eclipselink.version>
+        <grpc.version>1.14.0</grpc.version>
+        <protobuf.version>3.5.1</protobuf.version>
+        <protoc.version>3.5.1-1</protoc.version>
+        <netty.tcnative.version>2.0.7.Final</netty.tcnative.version>
+
     </properties>
 
     <build>
@@ -203,6 +208,7 @@
         <module>socket</module>
         <module>data-migration</module>
         <module>config-migration</module>
+        <module>grpc</module>
     </modules>
 
     <dependencyManagement>
@@ -296,9 +302,21 @@
 
             <dependency>
                 <groupId>com.quorum.tessera</groupId>
+                <artifactId>grpc-server</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.quorum.tessera</groupId>
                 <artifactId>test-util</artifactId>
                 <version>1.0-SNAPSHOT</version>
                 <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.quorum.tessera</groupId>
+                <artifactId>grpc</artifactId>
+                <version>1.0-SNAPSHOT</version>
             </dependency>
 
             <dependency>
@@ -443,6 +461,9 @@
                 <version>${eclipselink.version}</version>
                 <scope>runtime</scope>
             </dependency>
+
+            <!--  GRPC-->
+
             
             <!-- 
               Logging          

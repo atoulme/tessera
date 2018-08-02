@@ -60,6 +60,16 @@
         </dependency>
 
         <dependency>
+            <groupId>com.quorum.tessera</groupId>
+            <artifactId>grpc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.quorum.tessera</groupId>
+            <artifactId>grpc-server</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
         </dependency>

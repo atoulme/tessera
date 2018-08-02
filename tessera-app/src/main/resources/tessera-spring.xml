@@ -27,6 +27,16 @@
         </constructor-arg>
     </bean>
 
+
+     <!--GRPC -->
+    <bean id = "grpcTransactionService" class="com.quorum.tessera.api.grpc.GrpcTransactionService">
+        <constructor-arg ref="enclave"/>
+        <constructor-arg>
+            <bean class="com.quorum.tessera.util.Base64Decoder" factory-method="create"/>
+        </constructor-arg>
+    </bean>
+
+
     <!-- Node synchronization management-->
     <bean name="resendPartyStore" class="com.quorum.tessera.sync.ResendPartyStoreImpl">
         <constructor-arg ref="config" />
@@ -190,14 +200,14 @@
             <props>
                 <prop key="eclipselink.weaving">false</prop>
                 <prop key="eclipselink.session-name">tessera</prop>
-                <!--                <prop key="eclipselink.logging.level">FINE</prop>-->
+                                <!--<prop key="eclipselink.logging.level">FINE</prop>-->
                 <prop key="eclipselink.logging.logger">org.eclipse.persistence.logging.slf4j.SLF4JLogger</prop>
                 <prop key="eclipselink.logging.session">false</prop>
 
                 <prop key="javax.persistence.schema-generation.database.action">create</prop>
                 <prop key="javax.persistence.schema-generation.scripts.action">none</prop>
                 <!--<prop key="javax.persistence.schema-generation.scripts.action">create</prop>-->
-                <!--<prop key="javax.persistence.schema-generation.scripts.create-target">tesseraDDL.sql</prop>-->
+                <!--<prop key="javax.persistence.schema-generation.scripts.create-target">ddl.sql</prop>-->
 
             </props>
         </property>

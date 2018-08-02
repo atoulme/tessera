@@ -5,17 +5,22 @@ import com.quorum.tessera.config.Config;
 import com.quorum.tessera.config.ServerConfig;
 import com.quorum.tessera.config.cli.CliDelegate;
 import com.quorum.tessera.config.cli.CliResult;
+import com.quorum.tessera.grpc.server.GrpcServer;
 import com.quorum.tessera.server.RestServer;
 import com.quorum.tessera.server.RestServerFactory;
 import com.quorum.tessera.service.locator.ServiceLocator;
+import io.grpc.BindableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
+import java.io.IOException;
 import java.net.URI;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Collectors;
 
 /**
  * The main entry point for the application. This just starts up the application
@@ -40,7 +45,9 @@ public class Launcher {
 
             final URI uri = new URI(config.getServerConfig().getHostName() + ":" + config.getServerConfig().getPort());
 
-            runWebServer(uri, config.getServerConfig());
+//            runWebServer(uri, config.getServerConfig());
+
+            runGrpcServer(uri);
 
             System.exit(0);
 
@@ -75,6 +82,24 @@ public class Launcher {
         restServer.start();
 
         countDown.await();
+    }
+
+    private static void runGrpcServer(URI serverUri) throws IOException, InterruptedException {
+
+        final Tessera tessera = new Tessera(ServiceLocator.create(), "tessera-spring.xml");
+
+        final List<BindableService> services =
+            tessera.getSingletons().stream()
+                .filter(o -> o.getClass().getPackage().getName().startsWith("com.quorum.tessera.api.grpc"))
+                .map(o -> (BindableService) o)
+                .collect(Collectors.toList());
+
+        final GrpcServer grpcServer = new GrpcServer(serverUri, services);
+
+        grpcServer.start();
+
+        grpcServer.blockUntilShutdown();
+
     }
 
 }
