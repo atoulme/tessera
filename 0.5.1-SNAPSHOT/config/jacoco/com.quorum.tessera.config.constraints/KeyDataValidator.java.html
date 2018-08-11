@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KeyDataValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.constraints</a> &gt; <span class="el_source">KeyDataValidator.java</span></div><h1>KeyDataValidator.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.constraints;
+
+import com.quorum.tessera.config.KeyData;
+import com.quorum.tessera.config.util.FilesDelegate;
+import java.util.List;
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
+
+<span class="fc" id="L9">public class KeyDataValidator implements ConstraintValidator&lt;ValidKeyData, List&lt;KeyData&gt;&gt; {</span>
+
+    private ValidKeyData config;
+
+<span class="fc" id="L13">    private FilesDelegate filesDelegate = FilesDelegate.create();</span>
+
+    @Override
+    public void initialize(ValidKeyData config) {
+<span class="fc" id="L17">        this.config = config;</span>
+<span class="fc" id="L18">    }</span>
+
+    @Override
+    public boolean isValid(List&lt;KeyData&gt; keyDataList, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L22" title="All 2 branches covered.">        if(keyDataList == null) {</span>
+<span class="fc" id="L23">            return true;</span>
+        }
+        
+<span class="fc bfc" id="L26" title="All 2 branches covered.">        for (KeyData keyData : keyDataList) {</span>
+            //Assume that test values have been provided. 
+<span class="pc bpc" id="L28" title="1 of 4 branches missed.">            if (keyData.getPublicKeyPath() == null &amp;&amp; keyData.getPrivateKeyPath() == null) {</span>
+<span class="fc" id="L29">                return true;</span>
+            }
+
+<span class="pc bpc" id="L32" title="1 of 4 branches missed.">            if (keyData.getPublicKeyPath() == null || keyData.getPrivateKeyPath() == null) {</span>
+
+<span class="fc" id="L34">                context.disableDefaultConstraintViolation();</span>
+<span class="fc" id="L35">                context.buildConstraintViolationWithTemplate(&quot;When providing key paths, must give both as paths, not just one, and both files must exist&quot;)</span>
+<span class="fc" id="L36">                        .addConstraintViolation();</span>
+
+<span class="fc" id="L38">                return false;</span>
+            }
+
+<span class="fc bfc" id="L41" title="All 2 branches covered.">            if (filesDelegate.notExists(keyData.getPublicKeyPath())) {</span>
+
+<span class="fc" id="L43">                context.disableDefaultConstraintViolation();</span>
+<span class="fc" id="L44">                context.buildConstraintViolationWithTemplate(&quot;Public key path &quot; + keyData.getPublicKeyPath() + &quot;Does not exist&quot;)</span>
+<span class="fc" id="L45">                        .addConstraintViolation();</span>
+
+<span class="fc" id="L47">                return false;</span>
+            }
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">            if (filesDelegate.notExists(keyData.getPrivateKeyPath())) {</span>
+
+<span class="fc" id="L52">                context.disableDefaultConstraintViolation();</span>
+<span class="fc" id="L53">                context.buildConstraintViolationWithTemplate(&quot;Private key path &quot; + keyData.getPrivateKeyPath() + &quot;Does not exist&quot;)</span>
+<span class="fc" id="L54">                        .addConstraintViolation();</span>
+
+<span class="fc" id="L56">                return false;</span>
+            }
+<span class="fc" id="L58">        }</span>
+
+<span class="fc" id="L60">        return true;</span>
+    }
+
+    public void setFilesDelegate(FilesDelegate filesDelegate) {
+<span class="fc" id="L64">        this.filesDelegate = filesDelegate;</span>
+<span class="fc" id="L65">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

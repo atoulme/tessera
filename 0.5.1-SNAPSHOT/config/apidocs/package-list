@@ -1,0 +1,6 @@
+com.quorum.tessera.config
+com.quorum.tessera.config.adapters
+com.quorum.tessera.config.constraints
+com.quorum.tessera.config.constraints.checks
+com.quorum.tessera.config.keys
+com.quorum.tessera.config.util

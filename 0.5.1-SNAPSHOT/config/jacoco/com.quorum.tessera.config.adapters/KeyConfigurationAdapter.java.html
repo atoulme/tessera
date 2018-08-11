@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KeyConfigurationAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.adapters</a> &gt; <span class="el_source">KeyConfigurationAdapter.java</span></div><h1>KeyConfigurationAdapter.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.adapters;
+
+import com.quorum.tessera.config.*;
+import com.quorum.tessera.config.util.IOCallback;
+import com.quorum.tessera.config.util.JaxbUtil;
+
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+<span class="fc" id="L17">public class KeyConfigurationAdapter extends XmlAdapter&lt;KeyConfiguration, KeyConfiguration&gt; {</span>
+
+<span class="fc" id="L19">    private final KeyDataAdapter keyDataAdapter = new KeyDataAdapter();</span>
+
+    @Override
+    public KeyConfiguration unmarshal(final KeyConfiguration input) {
+
+<span class="fc bfc" id="L24" title="All 4 branches covered.">        if ((input.getPasswordFile() != null) &amp;&amp; (input.getPasswords() != null)) {</span>
+<span class="fc" id="L25">            throw new ConfigException(new RuntimeException(&quot;Must specify passwords in file or in config, not both&quot;));</span>
+        }
+
+        final List&lt;String&gt; allPasswords;
+<span class="fc bfc" id="L29" title="All 2 branches covered.">        if (input.getPasswords() != null) {</span>
+<span class="fc" id="L30">            allPasswords = input.getPasswords();</span>
+<span class="fc bfc" id="L31" title="All 2 branches covered.">        } else if (input.getPasswordFile() != null) {</span>
+<span class="fc" id="L32">            allPasswords = IOCallback.execute(() -&gt; Files.readAllLines(input.getPasswordFile(), UTF_8));</span>
+        } else {
+<span class="fc" id="L34">            allPasswords = Collections.emptyList();</span>
+        }
+
+
+        final List&lt;KeyData&gt; keyDataWithPasswords;
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (allPasswords.isEmpty()) {</span>
+<span class="fc" id="L40">            keyDataWithPasswords = input.getKeyData();</span>
+        } else {
+<span class="fc" id="L42">            keyDataWithPasswords = IntStream</span>
+<span class="fc" id="L43">                .range(0, input.getKeyData().size())</span>
+<span class="fc" id="L44">                .mapToObj(i -&gt; {</span>
+
+<span class="fc" id="L46">                    final KeyData kd = input.getKeyData().get(i);</span>
+
+                    final KeyDataConfig keyData;
+
+<span class="fc bfc" id="L50" title="All 2 branches covered.">                    if(kd.getConfig()==null) {</span>
+<span class="fc" id="L51">                        final InputStream is = IOCallback.execute(() -&gt; Files.newInputStream(kd.getPrivateKeyPath()));</span>
+<span class="fc" id="L52">                        keyData = JaxbUtil.unmarshal(is, KeyDataConfig.class);</span>
+<span class="fc" id="L53">                    } else {</span>
+<span class="fc" id="L54">                        keyData = kd.getConfig();</span>
+                    }
+
+<span class="fc" id="L57">                    return new KeyData(</span>
+                        new KeyDataConfig(
+                            new PrivateKeyData(
+<span class="fc" id="L60">                                keyData.getValue(),</span>
+<span class="fc" id="L61">                                keyData.getSnonce(),</span>
+<span class="fc" id="L62">                                keyData.getAsalt(),</span>
+<span class="fc" id="L63">                                keyData.getSbox(),</span>
+<span class="fc" id="L64">                                keyData.getArgonOptions(),</span>
+<span class="fc" id="L65">                                allPasswords.get(i)</span>
+                            ),
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                            kd.getConfig()==null ? keyData.getType() : kd.getConfig().getType()</span>
+                        ),
+<span class="fc" id="L69">                        kd.getPrivateKey(),</span>
+<span class="fc" id="L70">                        kd.getPublicKey(),</span>
+<span class="fc" id="L71">                        kd.getPrivateKeyPath(),</span>
+<span class="fc" id="L72">                        kd.getPublicKeyPath()</span>
+                    );
+<span class="fc" id="L74">                }).collect(Collectors.toList());</span>
+        }
+
+<span class="fc" id="L77">        return new KeyConfiguration(</span>
+<span class="fc" id="L78">            input.getPasswordFile(),</span>
+<span class="fc" id="L79">            input.getPasswords(),</span>
+            keyDataWithPasswords
+<span class="fc" id="L81">                .stream()</span>
+<span class="fc" id="L82">                .map(keyDataAdapter::unmarshal)</span>
+<span class="fc" id="L83">                .collect(Collectors.toList())</span>
+        );
+
+    }
+
+    @Override
+    public KeyConfiguration marshal(final KeyConfiguration input) {
+<span class="fc" id="L90">        return new KeyConfiguration(</span>
+<span class="fc" id="L91">            input.getPasswordFile(),</span>
+<span class="fc" id="L92">            input.getPasswords(),</span>
+<span class="fc" id="L93">            input.getKeyData()</span>
+<span class="fc" id="L94">                .stream()</span>
+<span class="fc" id="L95">                .map(keyDataAdapter::marshal)</span>
+<span class="fc" id="L96">                .collect(Collectors.toList())</span>
+        );
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
