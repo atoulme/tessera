@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SyncPoller.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.sync</a> &gt; <span class="el_source">SyncPoller.java</span></div><h1>SyncPoller.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.sync;
+
+import com.quorum.tessera.sync.model.SyncableParty;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+
+/**
+ * A poller that will contact all outstanding parties that need to have
+ * transactions resent for a single round
+ */
+public class SyncPoller implements Runnable {
+
+    private final ExecutorService executorService;
+
+    private final ResendPartyStore resendPartyStore;
+
+    private final TransactionRequester transactionRequester;
+
+    public SyncPoller(final ExecutorService executorService,
+                      final ResendPartyStore resendPartyStore,
+<span class="fc" id="L23">                      final TransactionRequester transactionRequester) {</span>
+<span class="fc" id="L24">        this.executorService = Objects.requireNonNull(executorService);</span>
+<span class="fc" id="L25">        this.resendPartyStore = Objects.requireNonNull(resendPartyStore);</span>
+<span class="fc" id="L26">        this.transactionRequester = Objects.requireNonNull(transactionRequester);</span>
+<span class="fc" id="L27">    }</span>
+
+    /**
+     * Retrieves all of the outstanding parties and makes an attempt to make the resend request
+     * asynchronously. If the request fails then the party is submitted back to the store for
+     * a later attempt.
+     */
+    @Override
+    public void run() {
+
+<span class="fc" id="L37">        Optional&lt;SyncableParty&gt; nextPartyToSend = this.resendPartyStore.getNextParty();</span>
+
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        while (nextPartyToSend.isPresent()) {</span>
+
+<span class="fc" id="L41">            final SyncableParty requestDetails = nextPartyToSend.get();</span>
+<span class="fc" id="L42">            final String url = requestDetails.getParty().getUrl();</span>
+
+<span class="fc" id="L44">            final Runnable action = () -&gt; {</span>
+<span class="fc" id="L45">                final boolean allSucceeded = this.transactionRequester.requestAllTransactionsFromNode(url);</span>
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">                if (!allSucceeded) {</span>
+<span class="fc" id="L48">                    this.resendPartyStore.incrementFailedAttempt(requestDetails);</span>
+                }
+<span class="fc" id="L50">            };</span>
+
+<span class="fc" id="L52">            this.executorService.submit(action);</span>
+
+<span class="fc" id="L54">            nextPartyToSend = this.resendPartyStore.getNextParty();</span>
+
+<span class="fc" id="L56">        }</span>
+
+<span class="fc" id="L58">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

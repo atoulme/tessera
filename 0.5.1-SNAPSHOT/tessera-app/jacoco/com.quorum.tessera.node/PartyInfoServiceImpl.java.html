@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PartyInfoServiceImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.node</a> &gt; <span class="el_source">PartyInfoServiceImpl.java</span></div><h1>PartyInfoServiceImpl.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.node;
+
+import com.quorum.tessera.config.Config;
+import com.quorum.tessera.config.Peer;
+import com.quorum.tessera.key.KeyManager;
+import com.quorum.tessera.key.exception.KeyNotFoundException;
+import com.quorum.tessera.nacl.Key;
+import com.quorum.tessera.node.model.Party;
+import com.quorum.tessera.node.model.PartyInfo;
+import com.quorum.tessera.node.model.Recipient;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
+
+public class PartyInfoServiceImpl implements PartyInfoService {
+
+    private final PartyInfoStore partyInfoStore;
+
+    public PartyInfoServiceImpl(final PartyInfoStore partyInfoStore,
+                                final Config configuration,
+<span class="fc" id="L25">                                final KeyManager keyManager) {</span>
+<span class="fc" id="L26">        this.partyInfoStore = Objects.requireNonNull(partyInfoStore);</span>
+
+<span class="fc" id="L28">        final String advertisedUrl = configuration.getServerConfig().getServerUri().toString();</span>
+
+<span class="fc" id="L30">        final Set&lt;Party&gt; initialParties = configuration</span>
+<span class="fc" id="L31">            .getPeers()</span>
+<span class="fc" id="L32">            .stream()</span>
+<span class="fc" id="L33">            .map(Peer::getUrl)</span>
+<span class="fc" id="L34">            .map(Party::new)</span>
+<span class="fc" id="L35">            .collect(toSet());</span>
+
+<span class="fc" id="L37">        final Set&lt;Recipient&gt; ourKeys = keyManager</span>
+<span class="fc" id="L38">            .getPublicKeys()</span>
+<span class="fc" id="L39">            .stream()</span>
+<span class="fc" id="L40">            .map(key -&gt; new Recipient(key, advertisedUrl))</span>
+<span class="fc" id="L41">            .collect(toSet());</span>
+
+<span class="fc" id="L43">        partyInfoStore.store(new PartyInfo(advertisedUrl, ourKeys, initialParties));</span>
+<span class="fc" id="L44">    }</span>
+
+    @Override
+    public PartyInfo getPartyInfo() {
+<span class="fc" id="L48">        return partyInfoStore.getPartyInfo();</span>
+    }
+
+    @Override
+    public PartyInfo updatePartyInfo(final PartyInfo partyInfo) {
+
+<span class="fc" id="L54">        partyInfoStore.store(partyInfo);</span>
+
+<span class="fc" id="L56">        return this.getPartyInfo();</span>
+    }
+
+    @Override
+    public String getURLFromRecipientKey(final Key key) {
+
+<span class="fc" id="L62">        final Recipient retrievedRecipientFromStore = partyInfoStore</span>
+<span class="fc" id="L63">            .getPartyInfo()</span>
+<span class="fc" id="L64">            .getRecipients()</span>
+<span class="fc" id="L65">            .stream()</span>
+<span class="fc" id="L66">            .filter(recipient -&gt; key.equals(recipient.getKey()))</span>
+<span class="fc" id="L67">            .findAny()</span>
+<span class="fc" id="L68">            .orElseThrow(() -&gt; new KeyNotFoundException(&quot;Recipient not found&quot;));</span>
+
+<span class="fc" id="L70">        return retrievedRecipientFromStore.getUrl();</span>
+    }
+
+    @Override
+    public Set&lt;Party&gt; findUnsavedParties(final PartyInfo partyInfoWithUnsavedRecipients) {
+<span class="fc" id="L75">        final Set&lt;Party&gt; knownHosts = this.getPartyInfo().getParties();</span>
+
+<span class="fc" id="L77">        final Set&lt;Party&gt; incomingRecipients = new HashSet&lt;&gt;(partyInfoWithUnsavedRecipients.getParties());</span>
+<span class="fc" id="L78">        incomingRecipients.removeAll(knownHosts);</span>
+
+<span class="fc" id="L80">        return Collections.unmodifiableSet(incomingRecipients);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

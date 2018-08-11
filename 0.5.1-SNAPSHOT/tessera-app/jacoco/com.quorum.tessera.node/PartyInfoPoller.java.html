@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PartyInfoPoller.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.node</a> &gt; <span class="el_source">PartyInfoPoller.java</span></div><h1>PartyInfoPoller.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.node;
+
+import com.quorum.tessera.api.model.ApiPath;
+import com.quorum.tessera.node.model.Party;
+import com.quorum.tessera.node.model.PartyInfo;
+import com.quorum.tessera.sync.ResendPartyStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.ConnectException;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Polls every so often to all known nodes for any new discoverable nodes
+ * This keeps all nodes up-to date and discoverable by other nodes
+ */
+public class PartyInfoPoller implements Runnable {
+
+<span class="fc" id="L20">    private static final Logger LOGGER = LoggerFactory.getLogger(PartyInfoPoller.class);</span>
+
+    private final PartyInfoService partyInfoService;
+
+    private final PostDelegate postDelegate;
+
+    private final PartyInfoParser partyInfoParser;
+
+    private final ResendPartyStore resendPartyStore;
+
+    public PartyInfoPoller(final PartyInfoService partyInfoService,
+                           final PartyInfoParser partyInfoParser,
+                           final PostDelegate postDelegate,
+<span class="fc" id="L33">                           final ResendPartyStore resendPartyStore) {</span>
+<span class="fc" id="L34">        this.partyInfoService = Objects.requireNonNull(partyInfoService);</span>
+<span class="fc" id="L35">        this.partyInfoParser = Objects.requireNonNull(partyInfoParser);</span>
+<span class="fc" id="L36">        this.postDelegate = Objects.requireNonNull(postDelegate);</span>
+<span class="fc" id="L37">        this.resendPartyStore = Objects.requireNonNull(resendPartyStore);</span>
+<span class="fc" id="L38">    }</span>
+
+    /**
+     * Iterates over all known parties and contacts them for the current state
+     * of their known node discovery list
+     *
+     * It then updates this nodes list of data with any new information collected
+     */
+    @Override
+    public void run() {
+<span class="fc" id="L48">        LOGGER.debug(&quot;Polling {}&quot;, getClass().getSimpleName());</span>
+
+<span class="fc" id="L50">        final PartyInfo partyInfo = partyInfoService.getPartyInfo();</span>
+
+<span class="fc" id="L52">        final byte[] encodedPartyInfo = partyInfoParser.to(partyInfo);</span>
+
+<span class="fc" id="L54">        partyInfo</span>
+<span class="fc" id="L55">            .getParties()</span>
+<span class="fc" id="L56">            .parallelStream()</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">            .filter(party -&gt; !party.getUrl().equals(partyInfo.getUrl()))</span>
+<span class="fc" id="L58">            .map(Party::getUrl)</span>
+<span class="fc" id="L59">            .map(url -&gt; pollSingleParty(url, encodedPartyInfo))</span>
+<span class="fc" id="L60">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L61">            .map(partyInfoParser::from)</span>
+<span class="fc" id="L62">            .forEach(newPartyInfo -&gt; {</span>
+<span class="fc" id="L63">                this.resendForNewKeys(newPartyInfo);</span>
+<span class="fc" id="L64">                partyInfoService.updatePartyInfo(newPartyInfo);</span>
+<span class="fc" id="L65">            });</span>
+
+<span class="fc" id="L67">        LOGGER.debug(&quot;Polled {}. PartyInfo : {}&quot;, getClass().getSimpleName(), partyInfo);</span>
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * Sends a request for node information to a single target
+     * If it cannot connect to the target, it returns null, otherwise throws
+     * any exception that can be thrown from {@link javax.ws.rs.client.Client}
+     *
+     * @param url              the target URL to call
+     * @param encodedPartyInfo the encoded current party information
+     * @return the encoded partyinfo from the target node, or null is the node
+     * could not be reached
+     */
+    private byte[] pollSingleParty(final String url, final byte[] encodedPartyInfo) {
+
+        try {
+<span class="fc" id="L83">            return postDelegate.doPost(url, ApiPath.PARTYINFO, encodedPartyInfo);</span>
+
+<span class="fc" id="L85">        } catch (final Exception ex) {</span>
+
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            if (ConnectException.class.isInstance(ex.getCause())) {</span>
+<span class="fc" id="L88">                LOGGER.warn(&quot;Server error {} when connecting to {}&quot;, ex.getMessage(), url);</span>
+<span class="fc" id="L89">                LOGGER.debug(null, ex);</span>
+<span class="fc" id="L90">                return null;</span>
+            } else {
+<span class="fc" id="L92">                LOGGER.error(&quot;Error thrown while executing poller. &quot;, ex);</span>
+<span class="fc" id="L93">                throw ex;</span>
+            }
+
+        }
+
+    }
+
+    private void resendForNewKeys(final PartyInfo receivedPartyInfo) {
+<span class="fc" id="L101">        final Set&lt;Party&gt; newPartiesFound = this.partyInfoService.findUnsavedParties(receivedPartyInfo);</span>
+<span class="fc" id="L102">        this.resendPartyStore.addUnseenParties(newPartiesFound);</span>
+<span class="fc" id="L103">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
