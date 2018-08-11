@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Config.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config</a> &gt; <span class="el_source">Config.java</span></div><h1>Config.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config;
+
+import com.quorum.tessera.config.adapters.KeyAdapter;
+import com.quorum.tessera.config.adapters.KeyConfigurationAdapter;
+import com.quorum.tessera.config.adapters.PathAdapter;
+import com.quorum.tessera.nacl.Key;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import javax.xml.bind.annotation.*;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.nio.file.Path;
+import java.util.List;
+
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(factoryMethod = &quot;create&quot;)
+public class Config extends ConfigItem {
+
+    @NotNull
+    @Valid
+    @XmlElement(name = &quot;jdbc&quot;, required = true)
+    private final JdbcConfig jdbcConfig;
+
+    @NotNull
+    @Valid
+    @XmlElement(name = &quot;server&quot;, required = true)
+    private final ServerConfig serverConfig;
+
+    @NotNull
+    @Size(min = 1)
+    @Valid
+    @XmlElement(name = &quot;peer&quot;, required = true)
+    private final List&lt;Peer&gt; peers;
+
+    @Valid
+    @NotNull
+    @XmlElement(required = true)
+    @XmlJavaTypeAdapter(KeyConfigurationAdapter.class)
+    private final KeyConfiguration keys;
+
+    @NotNull
+    @XmlElement(name = &quot;alwaysSendTo&quot;, required = true)
+    @XmlJavaTypeAdapter(KeyAdapter.class)
+    private final List&lt;Key&gt; alwaysSendTo;
+
+    @NotNull
+    @XmlElement(required = true, type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path unixSocketFile;
+
+    @XmlAttribute
+    private final boolean useWhiteList;
+
+    public Config(final JdbcConfig jdbcConfig,
+                  final ServerConfig serverConfig,
+                  final List&lt;Peer&gt; peers,
+                  final KeyConfiguration keyConfiguration,
+                  final List&lt;Key&gt; alwaysSendTo,
+                  final Path unixSocketFile,
+<span class="fc" id="L62">                  final boolean useWhiteList) {</span>
+<span class="fc" id="L63">        this.jdbcConfig = jdbcConfig;</span>
+<span class="fc" id="L64">        this.serverConfig = serverConfig;</span>
+<span class="fc" id="L65">        this.peers = peers;</span>
+<span class="fc" id="L66">        this.keys = keyConfiguration;</span>
+<span class="fc" id="L67">        this.alwaysSendTo = alwaysSendTo;</span>
+<span class="fc" id="L68">        this.unixSocketFile = unixSocketFile;</span>
+<span class="fc" id="L69">        this.useWhiteList = useWhiteList;</span>
+<span class="fc" id="L70">    }</span>
+
+    private static Config create() {
+<span class="fc" id="L73">        return new Config();</span>
+    }
+
+    private Config() {
+<span class="fc" id="L77">        this(null, null, null, null, null, null, false);</span>
+<span class="fc" id="L78">    }</span>
+
+    public JdbcConfig getJdbcConfig() {
+<span class="fc" id="L81">        return this.jdbcConfig;</span>
+    }
+
+    public ServerConfig getServerConfig() {
+<span class="fc" id="L85">        return this.serverConfig;</span>
+    }
+
+    public Path getUnixSocketFile() {
+<span class="fc" id="L89">        return this.unixSocketFile;</span>
+    }
+
+    public List&lt;Peer&gt; getPeers() {
+<span class="fc" id="L93">        return this.peers;</span>
+    }
+
+    public KeyConfiguration getKeys() {
+<span class="fc" id="L97">        return this.keys;</span>
+    }
+
+    public List&lt;Key&gt; getAlwaysSendTo() {
+<span class="fc" id="L101">        return this.alwaysSendTo;</span>
+    }
+
+    public boolean isUseWhiteList() {
+<span class="fc" id="L105">        return this.useWhiteList;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

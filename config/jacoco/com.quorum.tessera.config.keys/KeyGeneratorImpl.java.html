@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>KeyGeneratorImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.keys</a> &gt; <span class="el_source">KeyGeneratorImpl.java</span></div><h1>KeyGeneratorImpl.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.keys;
+
+import com.quorum.tessera.config.*;
+import com.quorum.tessera.config.util.IOCallback;
+import com.quorum.tessera.config.util.JaxbUtil;
+import com.quorum.tessera.config.util.PasswordReader;
+import com.quorum.tessera.nacl.KeyPair;
+import com.quorum.tessera.nacl.NaclFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Base64;
+import java.util.Objects;
+
+import static com.quorum.tessera.config.PrivateKeyType.LOCKED;
+import static com.quorum.tessera.config.PrivateKeyType.UNLOCKED;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class KeyGeneratorImpl implements KeyGenerator {
+
+<span class="fc" id="L26">    private static final Logger LOGGER = LoggerFactory.getLogger(KeyGeneratorImpl.class);</span>
+
+    private static final String EMPTY_FILENAME = &quot;&quot;;
+
+    private final NaclFacade nacl;
+
+    private final KeyEncryptor keyEncryptor;
+
+    private final PasswordReader passwordReader;
+
+<span class="fc" id="L36">    public KeyGeneratorImpl(final NaclFacade nacl, final KeyEncryptor keyEncryptor, final PasswordReader passwordReader) {</span>
+<span class="fc" id="L37">        this.nacl = Objects.requireNonNull(nacl);</span>
+<span class="fc" id="L38">        this.keyEncryptor = Objects.requireNonNull(keyEncryptor);</span>
+<span class="fc" id="L39">        this.passwordReader = Objects.requireNonNull(passwordReader);</span>
+<span class="fc" id="L40">    }</span>
+
+    @Override
+    public KeyData generate(final String filename, final ArgonOptions encryptionOptions) {
+
+<span class="fc" id="L45">        final String password = this.getPassword();</span>
+
+<span class="fc" id="L47">        final KeyPair generated = this.nacl.generateNewKeys();</span>
+
+<span class="fc" id="L49">        final String publicKeyBase64 = Base64.getEncoder().encodeToString(generated.getPublicKey().getKeyBytes());</span>
+
+        final KeyData finalKeys;
+
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (!password.isEmpty()) {</span>
+
+<span class="fc" id="L55">            final PrivateKeyData encryptedPrivateKey = this.keyEncryptor.encryptPrivateKey(</span>
+<span class="fc" id="L56">                generated.getPrivateKey(), password, encryptionOptions</span>
+            );
+
+<span class="fc" id="L59">            finalKeys = new KeyData(</span>
+                new KeyDataConfig(
+                    new PrivateKeyData(
+<span class="fc" id="L62">                        generated.getPrivateKey().toString(),</span>
+<span class="fc" id="L63">                        encryptedPrivateKey.getSnonce(),</span>
+<span class="fc" id="L64">                        encryptedPrivateKey.getAsalt(),</span>
+<span class="fc" id="L65">                        encryptedPrivateKey.getSbox(),</span>
+                        new ArgonOptions(
+<span class="fc" id="L67">                            encryptedPrivateKey.getArgonOptions().getAlgorithm(),</span>
+<span class="fc" id="L68">                            encryptedPrivateKey.getArgonOptions().getIterations(),</span>
+<span class="fc" id="L69">                            encryptedPrivateKey.getArgonOptions().getMemory(),</span>
+<span class="fc" id="L70">                            encryptedPrivateKey.getArgonOptions().getParallelism()</span>
+                        ),
+                        password
+                    ),
+                    PrivateKeyType.LOCKED
+                ),
+<span class="fc" id="L76">                generated.getPrivateKey().toString(),</span>
+                publicKeyBase64,
+                null,
+                null
+            );
+
+<span class="fc" id="L82">            LOGGER.info(&quot;Newly generated private key has been encrypted&quot;);</span>
+
+<span class="fc" id="L84">        } else {</span>
+
+<span class="fc" id="L86">            finalKeys = new KeyData(</span>
+                new KeyDataConfig(
+<span class="fc" id="L88">                    new PrivateKeyData(generated.getPrivateKey().toString(), null, null, null, null, null),</span>
+                    UNLOCKED
+                ),
+<span class="fc" id="L91">                generated.getPrivateKey().toString(),</span>
+                publicKeyBase64,
+                null,
+                null
+            );
+
+        }
+
+<span class="fc" id="L99">        final String privateKeyJson = this.privateKeyToJson(finalKeys);</span>
+
+
+<span class="fc" id="L102">        final Path resolvedPath = Paths.get(filename).toAbsolutePath();</span>
+        final Path parentPath;
+
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if(EMPTY_FILENAME.equals(filename)) {</span>
+<span class="fc" id="L106">            parentPath = resolvedPath;</span>
+        } else {
+<span class="fc" id="L108">            parentPath = resolvedPath.getParent();</span>
+        }
+
+<span class="fc" id="L111">        final Path publicKeyPath = parentPath.resolve(filename + &quot;.pub&quot;);</span>
+<span class="fc" id="L112">        final Path privateKeyPath = parentPath.resolve(filename + &quot;.key&quot;);</span>
+
+<span class="fc" id="L114">        IOCallback.execute(() -&gt; Files.write(publicKeyPath, publicKeyBase64.getBytes(UTF_8), StandardOpenOption.CREATE_NEW));</span>
+<span class="fc" id="L115">        IOCallback.execute(() -&gt; Files.write(privateKeyPath, privateKeyJson.getBytes(UTF_8), StandardOpenOption.CREATE_NEW));</span>
+
+<span class="fc" id="L117">        LOGGER.info(&quot;Saved public key to {}&quot;, publicKeyPath.toAbsolutePath().toString());</span>
+<span class="fc" id="L118">        LOGGER.info(&quot;Saved private key to {}&quot;, privateKeyPath.toAbsolutePath().toString());</span>
+
+<span class="fc" id="L120">        return finalKeys;</span>
+    }
+
+    private String privateKeyToJson(final KeyData keyData) {
+
+<span class="fc" id="L125">        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();</span>
+
+        final KeyDataConfig privateKey;
+
+<span class="fc bfc" id="L129" title="All 2 branches covered.">        if (LOCKED.equals(keyData.getConfig().getType())) {</span>
+
+<span class="fc" id="L131">            privateKey = new KeyDataConfig(</span>
+                new PrivateKeyData(
+                    null,
+<span class="fc" id="L134">                    keyData.getConfig().getSnonce(),</span>
+<span class="fc" id="L135">                    keyData.getConfig().getAsalt(),</span>
+<span class="fc" id="L136">                    keyData.getConfig().getSbox(),</span>
+<span class="fc" id="L137">                    keyData.getConfig().getArgonOptions(),</span>
+                    null
+                ),
+                LOCKED
+            );
+
+        } else {
+<span class="fc" id="L144">            privateKey = keyData.getConfig();</span>
+        }
+
+<span class="fc" id="L147">        JaxbUtil.marshal(privateKey, outputStream);</span>
+
+<span class="fc" id="L149">        return new String(outputStream.toByteArray());</span>
+
+    }
+
+    private String getPassword() {
+
+        for(;;) {
+
+<span class="fc" id="L157">            System.out.println(&quot;Enter a password if you want to lock the private key or leave blank&quot;);</span>
+<span class="fc" id="L158">            final String password = this.passwordReader.readPassword();</span>
+
+<span class="fc" id="L160">            System.out.println(&quot;Please re-enter the password (or lack of) to confirm&quot;);</span>
+<span class="fc" id="L161">            final String passwordCheck = this.passwordReader.readPassword();</span>
+
+<span class="fc bfc" id="L163" title="All 2 branches covered.">            if(Objects.equals(password, passwordCheck)) {</span>
+<span class="fc" id="L164">                return password;</span>
+            } else {
+<span class="fc" id="L166">                System.out.println(&quot;Passwords did not match, try again...&quot;);</span>
+            }
+
+<span class="fc" id="L169">        }</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

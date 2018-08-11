@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ServerConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config</a> &gt; <span class="el_source">ServerConfig.java</span></div><h1>ServerConfig.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config;
+
+import com.quorum.tessera.config.constraints.ValidSsl;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Objects;
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(factoryMethod = &quot;create&quot;)
+public class ServerConfig extends ConfigItem {
+
+    @NotNull
+    @XmlElement(required = true)
+    private final String hostName;
+
+    @NotNull
+    @XmlElement
+    private final Integer port;
+
+    @Valid
+    @XmlElement(required = false)
+    @ValidSsl
+    private final SslConfig sslConfig;
+
+    @Valid
+    @XmlElement(required = false)
+    private final InfluxConfig influxConfig;
+
+<span class="fc" id="L36">    public ServerConfig(String hostName, Integer port, SslConfig sslConfig, InfluxConfig influxConfig) {</span>
+<span class="fc" id="L37">        this.hostName = hostName;</span>
+<span class="fc" id="L38">        this.port = port;</span>
+<span class="fc" id="L39">        this.sslConfig = sslConfig;</span>
+<span class="fc" id="L40">        this.influxConfig = influxConfig;</span>
+<span class="fc" id="L41">    }</span>
+
+    private static ServerConfig create() {
+<span class="fc" id="L44">        return new ServerConfig(null, null, null, null);</span>
+    }
+
+    public String getHostName() {
+<span class="fc" id="L48">        return hostName;</span>
+    }
+
+    public Integer getPort() {
+<span class="fc" id="L52">        return port;</span>
+    }
+
+    public SslConfig getSslConfig() {
+<span class="fc" id="L56">        return sslConfig;</span>
+    }
+
+    public InfluxConfig getInfluxConfig() {
+<span class="fc" id="L60">        return influxConfig;</span>
+    }
+
+    public URI getServerUri() {
+        try {
+<span class="fc" id="L65">            return new URI(hostName + &quot;:&quot; + port);</span>
+<span class="fc" id="L66">        } catch (URISyntaxException ex) {</span>
+<span class="fc" id="L67">            throw new ConfigException(ex);</span>
+        }
+    }
+
+    public boolean isSsl() {
+<span class="fc bfc" id="L72" title="All 4 branches covered.">        return Objects.nonNull(sslConfig) &amp;&amp; sslConfig.getTls() == SslAuthenticationMode.STRICT;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
