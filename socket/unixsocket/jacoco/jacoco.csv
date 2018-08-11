@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+unixsocket,com.quorum.tessera.socket,UnixDomainServerSocket,0,61,0,0,0,22,0,5,0,5
+unixsocket,com.quorum.tessera.socket,HttpProxyFactory,0,54,0,2,0,19,0,3,0,2
+unixsocket,com.quorum.tessera.socket,HttpProxy,0,95,0,0,0,31,0,6,0,6
+unixsocket,com.quorum.tessera.socket,UnixSocketFactory,0,6,0,0,0,1,0,1,0,1
+unixsocket,com.quorum.tessera.socket,SocketServer,0,78,0,0,0,22,0,3,0,3
+unixsocket,com.quorum.tessera.socket,SocketServerFactory,0,19,0,0,0,7,0,1,0,1
+unixsocket,com.quorum.tessera.socket,InputStreamUtils,0,26,0,2,0,7,0,3,0,2
+unixsocket,com.quorum.tessera.socket,TesseraSocketException,0,4,0,0,0,2,0,1,0,1
+unixsocket,com.quorum.tessera.socket,SocketHandler,0,76,0,2,0,22,0,5,0,4

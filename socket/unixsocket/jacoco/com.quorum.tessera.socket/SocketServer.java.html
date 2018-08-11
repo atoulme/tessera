@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SocketServer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">unixsocket</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.socket</a> &gt; <span class="el_source">SocketServer.java</span></div><h1>SocketServer.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.socket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Path;
+import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+
+/**
+ * Create a server listening on a Unix Domain Socket for http requests. We
+ * create a connection to an HTTP server, and act as a proxy between the socket
+ * and the HTTP server.
+ */
+public class SocketServer implements Runnable {
+
+<span class="fc" id="L20">    private static final Logger LOGGER = LoggerFactory.getLogger(SocketServer.class);</span>
+
+    private final HttpProxyFactory httpProxyFactory;
+
+    private final ExecutorService executor;
+
+    private final ServerSocket server;
+
+    /**
+     * Create the unix domain socket and start the listener thread.
+     */
+    public SocketServer(final Path socketFile,
+                        final HttpProxyFactory httpProxyFactory,
+                        final ExecutorService executor,
+<span class="fc" id="L34">                        final UnixSocketFactory unixSocketFactory) {</span>
+
+<span class="fc" id="L36">        this.httpProxyFactory = Objects.requireNonNull(httpProxyFactory);</span>
+
+<span class="fc" id="L38">        this.executor = Objects.requireNonNull(executor, &quot;Executor service is required&quot;);</span>
+
+        try {
+<span class="fc" id="L41">            this.server = unixSocketFactory.createServerSocket(socketFile);</span>
+
+<span class="fc" id="L43">            LOGGER.info(&quot;IPC server: {}&quot;, server);</span>
+
+<span class="fc" id="L45">        } catch (final IOException ex) {</span>
+<span class="fc" id="L46">            LOGGER.error(&quot;Failed to create Unix Domain Socket: {}&quot;, socketFile.toString());</span>
+<span class="fc" id="L47">            throw new TesseraSocketException(ex);</span>
+<span class="fc" id="L48">        }</span>
+
+<span class="fc" id="L50">    }</span>
+
+    /**
+     * Wait for a client connection, then: - create a connection to the HTTP
+     * server - read the client HTTP request and forward it to the HTTP server -
+     * read the HTTP response and return it to the client Note that Quorum opens
+     * a new client connection for each request.
+     */
+    @Override
+    public void run() {
+
+<span class="fc" id="L61">        LOGGER.debug(&quot;Waiting for client connection on unix domain socket...&quot;);</span>
+
+        try {
+
+<span class="fc" id="L65">            final Socket accept = server.accept();</span>
+
+<span class="fc" id="L67">            final UnixDomainServerSocket udss = new UnixDomainServerSocket(accept);</span>
+
+<span class="fc" id="L69">            LOGGER.debug(&quot;Client connection received&quot;);</span>
+
+<span class="fc" id="L71">            final SocketHandler handler = new SocketHandler(udss, httpProxyFactory);</span>
+
+<span class="fc" id="L73">            executor.submit(handler);</span>
+
+<span class="fc" id="L75">        } catch (final IOException ex) {</span>
+<span class="fc" id="L76">            LOGGER.error(&quot;Failed to create Socket&quot;);</span>
+<span class="fc" id="L77">            throw new TesseraSocketException(ex);</span>
+<span class="fc" id="L78">        }</span>
+
+<span class="fc" id="L80">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

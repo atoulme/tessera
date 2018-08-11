@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UnixSocketFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">unixsocket</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.socket</a> &gt; <span class="el_source">UnixSocketFactory.java</span></div><h1>UnixSocketFactory.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.socket;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Path;
+import java.util.ServiceLoader;
+
+/**
+ * Interface for different implementations to create server sockets and bind
+ * to existing sockets as a client
+ */
+public interface UnixSocketFactory {
+
+    /**
+     * Creates a new server unix socket
+     *
+     * @param socketFile the location to create the socket file
+     * @return the server that will accept requests
+     * @throws IOException if the file already exists, or another IO failure occurs
+     */
+     ServerSocket createServerSocket(Path socketFile) throws IOException;
+
+    /**
+     * Binds to a server socket as a client, opening a connection the the server
+     *
+     * @param socketFile the location of the server socket file to connect to
+     * @return the socket connection to read/write to/from
+     * @throws IOException if there was a problem connecting to the server
+     */
+     Socket createSocket(Path socketFile) throws IOException;
+
+    /**
+     * Find an implementation of {@link UnixSocketFactory} from the service loader
+     * @return an implementation of this interface
+     */
+     static UnixSocketFactory create() {
+<span class="fc" id="L38">         return ServiceLoader.load(UnixSocketFactory.class).iterator().next();</span>
+     }
+     
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
