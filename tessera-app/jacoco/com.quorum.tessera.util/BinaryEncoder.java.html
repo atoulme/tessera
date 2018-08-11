@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>BinaryEncoder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.util</a> &gt; <span class="el_source">BinaryEncoder.java</span></div><h1>BinaryEncoder.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.util;
+
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.toList;
+
+/**
+ * Encodes bytes to the binary form expected by other nodes on the network
+ */
+public interface BinaryEncoder {
+
+    /**
+     * Converts a byte array to its binary form, which takes the following:
+     * 8 bytes to describe the number of bytes long the data is
+     * the bytes of the data
+     *
+     * @param data the input array to encode
+     * @return the encoded byte array
+     */
+    default byte[] encodeField(final byte[] data) {
+<span class="fc" id="L23">        return ByteBuffer</span>
+<span class="fc" id="L24">            .allocate(Long.BYTES + data.length)</span>
+<span class="fc" id="L25">            .putLong(data.length)</span>
+<span class="fc" id="L26">            .put(data)</span>
+<span class="fc" id="L27">            .array();</span>
+    }
+
+    /**
+     * Converts a 2d-byte array to its binary form, which takes the following:
+     *
+     * 8 bytes to describe the number of elements
+     * and for each element:
+     * - 8 bytes to describe the number of bytes long the element is
+     * - the bytes of the element
+     *
+     * @param data the input array to encode
+     * @return the encoded byte array
+     */
+    default byte[] encodeArray(final byte[][] data) {
+<span class="fc" id="L42">        return encodeArray(Stream.of(data).collect(toList()));</span>
+    }
+
+    /**
+     * Converts a list of byte arrays to its binary form, which takes the following:
+     *
+     * 8 bytes to describe the number of elements
+     * and for each element:
+     * - 8 bytes to describe the number of bytes long the element is
+     * - the bytes of the element
+     *
+     * @param data the input array to encode
+     * @return the encoded byte array
+     */
+    default byte[] encodeArray(final List&lt;byte[]&gt; data) {
+<span class="fc" id="L57">        final int numberOfElements = data.size();</span>
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        if(numberOfElements == 0) {</span>
+<span class="fc" id="L60">            return new byte[Long.BYTES];</span>
+        }
+
+<span class="fc" id="L63">        final Long totalLengthOfElements = data</span>
+<span class="fc" id="L64">            .stream()</span>
+<span class="fc" id="L65">            .mapToLong(element -&gt; element.length)</span>
+<span class="fc" id="L66">            .sum();</span>
+
+<span class="fc" id="L68">        final ByteBuffer buffer = ByteBuffer</span>
+<span class="fc" id="L69">            .allocate(Long.BYTES + Long.BYTES*numberOfElements + totalLengthOfElements.intValue());</span>
+
+<span class="fc" id="L71">        buffer.putLong(numberOfElements);</span>
+
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        for(final byte[] element : data) {</span>
+<span class="fc" id="L74">            buffer.putLong(element.length);</span>
+<span class="fc" id="L75">            buffer.put(element);</span>
+<span class="fc" id="L76">        }</span>
+
+<span class="fc" id="L78">        return buffer.array();</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

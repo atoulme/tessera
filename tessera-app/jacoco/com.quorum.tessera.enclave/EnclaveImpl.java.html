@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EnclaveImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.enclave</a> &gt; <span class="el_source">EnclaveImpl.java</span></div><h1>EnclaveImpl.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.enclave;
+
+import com.quorum.tessera.api.model.ApiPath;
+import com.quorum.tessera.enclave.model.MessageHash;
+import com.quorum.tessera.key.KeyManager;
+import com.quorum.tessera.nacl.Key;
+import com.quorum.tessera.node.PartyInfoService;
+import com.quorum.tessera.node.PostDelegate;
+import com.quorum.tessera.transaction.PayloadEncoder;
+import com.quorum.tessera.transaction.TransactionService;
+import com.quorum.tessera.transaction.model.EncodedPayload;
+import com.quorum.tessera.transaction.model.EncodedPayloadWithRecipients;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.Objects.requireNonNull;
+
+public class EnclaveImpl implements Enclave {
+
+    private final TransactionService transactionService;
+
+    private final PartyInfoService partyInfoService;
+
+    private final PayloadEncoder payloadEncoder;
+
+    private final PostDelegate postDelegate;
+
+    private final KeyManager keyManager;
+
+    public EnclaveImpl(final TransactionService transactionService,
+                       final PartyInfoService partyInfoService,
+                       final PayloadEncoder payloadEncoder,
+                       final PostDelegate postDelegate,
+<span class="fc" id="L40">                       final KeyManager keyManager) {</span>
+<span class="fc" id="L41">        this.transactionService = requireNonNull(transactionService, &quot;transactionService cannot be null&quot;);</span>
+<span class="fc" id="L42">        this.partyInfoService = requireNonNull(partyInfoService, &quot;partyInfoService cannot be null&quot;);</span>
+<span class="fc" id="L43">        this.payloadEncoder = requireNonNull(payloadEncoder, &quot;encoder cannot be null&quot;);</span>
+<span class="fc" id="L44">        this.postDelegate = requireNonNull(postDelegate, &quot;postDelegate cannot be null&quot;);</span>
+<span class="fc" id="L45">        this.keyManager = requireNonNull(keyManager, &quot;keyManager cannot be null&quot;);</span>
+<span class="fc" id="L46">    }</span>
+
+    @Override
+    public void delete(final byte[] hashBytes) {
+<span class="fc" id="L50">        final MessageHash messageHash = new MessageHash(hashBytes);</span>
+
+<span class="fc" id="L52">        this.transactionService.delete(messageHash);</span>
+<span class="fc" id="L53">    }</span>
+
+    @Override
+    public byte[] receive(final byte[] key, final Optional&lt;byte[]&gt; to) {
+<span class="fc" id="L57">        return transactionService.retrieveUnencryptedTransaction(</span>
+            new MessageHash(key),
+<span class="fc" id="L59">            to.map(Key::new).orElseGet(keyManager::defaultPublicKey)</span>
+        );
+    }
+
+    @Override
+    public MessageHash store(final Optional&lt;byte[]&gt; sender, final byte[][] recipients, final byte[] message) {
+
+<span class="fc" id="L66">        final Key senderPublicKey = sender</span>
+<span class="fc" id="L67">            .map(Key::new)</span>
+<span class="fc" id="L68">            .orElseGet(keyManager::defaultPublicKey);</span>
+
+<span class="fc" id="L70">        final List&lt;Key&gt; recipientList = Stream</span>
+<span class="fc" id="L71">            .of(recipients)</span>
+<span class="fc" id="L72">            .map(Key::new)</span>
+<span class="fc" id="L73">            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L75">        recipientList.addAll(keyManager.getForwardingKeys());</span>
+
+<span class="fc" id="L77">        EncodedPayloadWithRecipients encryptedPayload =</span>
+<span class="fc" id="L78">            transactionService.encryptPayload(message, senderPublicKey, recipientList);</span>
+
+<span class="fc" id="L80">        MessageHash messageHash = transactionService.storeEncodedPayload(encryptedPayload);</span>
+
+<span class="fc" id="L82">        recipientList.forEach(recipient -&gt; publishPayload(encryptedPayload, recipient));</span>
+
+<span class="fc" id="L84">        return messageHash;</span>
+
+    }
+
+    @Override
+    public MessageHash storePayload(final byte[] payload) {
+<span class="fc" id="L90">        return transactionService.storeEncodedPayload(</span>
+<span class="fc" id="L91">            payloadEncoder.decodePayloadWithRecipients(payload)</span>
+        );
+    }
+
+    @Override
+    public void publishPayload(final EncodedPayloadWithRecipients encodedPayloadWithRecipients,
+                               final Key recipientKey) {
+
+<span class="fc" id="L99">        final String targetUrl = partyInfoService.getURLFromRecipientKey(recipientKey);</span>
+
+<span class="fc bfc" id="L101" title="All 2 branches covered.">        if (!partyInfoService.getPartyInfo().getUrl().equals(targetUrl)) {</span>
+
+<span class="fc" id="L103">            final EncodedPayload encodedPayload = encodedPayloadWithRecipients.getEncodedPayload();</span>
+
+<span class="fc" id="L105">            final int index = encodedPayloadWithRecipients.getRecipientKeys().indexOf(recipientKey);</span>
+
+<span class="fc" id="L107">            final EncodedPayloadWithRecipients encodedPayloadWithOneRecipient =</span>
+                new EncodedPayloadWithRecipients(
+                    new EncodedPayload(
+<span class="fc" id="L110">                        encodedPayload.getSenderKey(),</span>
+<span class="fc" id="L111">                        encodedPayload.getCipherText(),</span>
+<span class="fc" id="L112">                        encodedPayload.getCipherTextNonce(),</span>
+<span class="fc" id="L113">                        singletonList(encodedPayload.getRecipientBoxes().get(index)),</span>
+<span class="fc" id="L114">                        encodedPayload.getRecipientNonce()</span>
+                    ),
+<span class="fc" id="L116">                    emptyList()</span>
+                );
+
+<span class="fc" id="L119">            final byte[] encoded = payloadEncoder.encode(encodedPayloadWithOneRecipient);</span>
+
+<span class="fc" id="L121">            postDelegate.doPost(targetUrl, ApiPath.PUSH, encoded);</span>
+        }
+<span class="fc" id="L123">    }</span>
+
+    @Override
+    public void resendAll(final byte[] recipientPublicKey) {
+<span class="fc" id="L127">        final Key recipient = new Key(recipientPublicKey);</span>
+
+<span class="fc" id="L129">        final Collection&lt;EncodedPayloadWithRecipients&gt; payloads</span>
+<span class="fc" id="L130">            = this.transactionService.retrieveAllForRecipient(recipient);</span>
+
+<span class="fc" id="L132">        payloads.forEach(payload -&gt;</span>
+<span class="fc" id="L133">            payload.getRecipientKeys().forEach(recipientKey -&gt;</span>
+<span class="fc" id="L134">                publishPayload(payload, recipientKey)</span>
+            )
+        );
+<span class="fc" id="L137">    }</span>
+
+    @Override
+    public EncodedPayloadWithRecipients fetchTransactionForRecipient(final MessageHash hash, final Key recipient){
+<span class="fc" id="L141">        final EncodedPayloadWithRecipients payloadWithRecipients = transactionService.retrievePayload(hash);</span>
+
+<span class="fc" id="L143">        final EncodedPayload encodedPayload = payloadWithRecipients.getEncodedPayload();</span>
+
+<span class="fc bfc" id="L145" title="All 2 branches covered.">        if (!payloadWithRecipients.getRecipientKeys().contains(recipient)) {</span>
+<span class="fc" id="L146">            throw new RuntimeException(&quot;Recipient &quot; + recipient + &quot; is not a recipient of transaction &quot; + hash);</span>
+        }
+
+<span class="fc" id="L149">        final int recipientIndex = payloadWithRecipients.getRecipientKeys().indexOf(recipient);</span>
+<span class="fc" id="L150">        final byte[] recipientBox = encodedPayload.getRecipientBoxes().get(recipientIndex);</span>
+
+<span class="fc" id="L152">        return new EncodedPayloadWithRecipients(</span>
+            new EncodedPayload(
+<span class="fc" id="L154">                encodedPayload.getSenderKey(),</span>
+<span class="fc" id="L155">                encodedPayload.getCipherText(),</span>
+<span class="fc" id="L156">                encodedPayload.getCipherTextNonce(),</span>
+<span class="fc" id="L157">                singletonList(recipientBox),</span>
+<span class="fc" id="L158">                encodedPayload.getRecipientNonce()</span>
+            ),
+<span class="fc" id="L160">            emptyList()</span>
+        );
+
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
