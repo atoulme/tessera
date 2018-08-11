@@ -1,0 +1,13 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+config-cli,com.quorum.tessera.reflect,ReflectCallback,0,17,0,0,0,5,0,2,0,2
+config-cli,com.quorum.tessera.reflect,ReflectException,0,4,0,0,0,2,0,1,0,1
+config-cli,com.quorum.tessera.io,IOCallback,0,17,0,0,0,5,0,2,0,2
+config-cli,com.quorum.tessera.io,FilesDelegate,0,22,0,0,0,3,0,5,0,5
+config-cli,com.quorum.tessera.io,FilesDelegate.new FilesDelegate() {...},0,3,0,0,0,1,0,1,0,1
+config-cli,com.quorum.tessera.config.cli,CliResult,0,30,0,0,0,10,0,5,0,5
+config-cli,com.quorum.tessera.config.cli,DefaultCliAdapter,0,530,0,34,0,143,0,28,0,11
+config-cli,com.quorum.tessera.config.cli,OverrideUtil,0,666,0,44,0,137,0,58,0,36
+config-cli,com.quorum.tessera.config.cli,CliDelegate,0,34,0,0,0,8,0,4,0,4
+config-cli,com.quorum.tessera.config.cli,OverrideUtil.new HashMap() {...},0,48,0,0,0,11,0,1,0,1
+config-cli,com.quorum.tessera.config.cli,CliAdapter,0,4,0,0,0,1,0,1,0,1
+config-cli,com.quorum.tessera.config.cli,CliException,0,4,0,0,0,2,0,1,0,1
