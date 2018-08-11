@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LegacyCliAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config-migration</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.migration</a> &gt; <span class="el_source">LegacyCliAdapter.java</span></div><h1>LegacyCliAdapter.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.migration;
+
+import com.quorum.tessera.config.Config;
+import com.quorum.tessera.config.ConfigFactory;
+import com.quorum.tessera.config.KeyConfiguration;
+import com.quorum.tessera.config.SslAuthenticationMode;
+import com.quorum.tessera.config.builder.ConfigBuilder;
+import com.quorum.tessera.config.builder.JdbcConfigFactory;
+import com.quorum.tessera.config.builder.KeyDataBuilder;
+import com.quorum.tessera.config.builder.SslTrustModeFactory;
+import com.quorum.tessera.config.cli.CliAdapter;
+import com.quorum.tessera.config.cli.CliResult;
+import com.quorum.tessera.config.util.JaxbUtil;
+import com.quorum.tessera.io.FilesDelegate;
+import org.apache.commons.cli.*;
+
+import javax.validation.ConstraintViolationException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+public class LegacyCliAdapter implements CliAdapter {
+
+<span class="fc" id="L27">    private final FilesDelegate fileDelegate = FilesDelegate.create();</span>
+
+    private final ConfigFactory configFactory;
+
+    public LegacyCliAdapter() {
+<span class="fc" id="L32">        this(new TomlConfigFactory());</span>
+<span class="fc" id="L33">    }</span>
+
+<span class="fc" id="L35">    protected LegacyCliAdapter(ConfigFactory configFactory) {</span>
+<span class="fc" id="L36">        this.configFactory = Objects.requireNonNull(configFactory);</span>
+<span class="fc" id="L37">    }</span>
+
+    @Override
+    public CliResult execute(String... args) throws Exception {
+
+<span class="fc" id="L42">        Options options = buildOptions();</span>
+<span class="fc" id="L43">        final List&lt;String&gt; argsList = Arrays.asList(args);</span>
+<span class="fc bfc" id="L44" title="All 4 branches covered.">        if (argsList.isEmpty() || argsList.contains(&quot;help&quot;)) {</span>
+<span class="fc" id="L45">            String header = &quot;Generate Tessera JSON config file from a Constellation TOML config file&quot;;</span>
+<span class="fc" id="L46">            HelpFormatter formatter = new HelpFormatter();</span>
+<span class="fc" id="L47">            formatter.printHelp(&quot;tessera-config-migration&quot;, header, options, null);</span>
+<span class="fc bfc" id="L48" title="All 2 branches covered.">            final int exitCode = argsList.isEmpty() ? 1 : 0;</span>
+<span class="fc" id="L49">            return new CliResult(exitCode, true, false, null);</span>
+        }
+
+<span class="fc" id="L52">        CommandLineParser parser = new DefaultParser();</span>
+
+<span class="fc" id="L54">        CommandLine line = parser.parse(options, args);</span>
+
+<span class="fc" id="L56">        final ConfigBuilder configBuilder = Optional.ofNullable(line.getOptionValue(&quot;tomlfile&quot;))</span>
+<span class="fc" id="L57">                                                .map(Paths::get)</span>
+<span class="fc" id="L58">                                                .map(fileDelegate::newInputStream)</span>
+<span class="fc" id="L59">                                                .map(stream -&gt; this.configFactory.create(stream, null))</span>
+<span class="fc" id="L60">                                                .map(ConfigBuilder::from)</span>
+<span class="fc" id="L61">                                                .orElse(ConfigBuilder.create());</span>
+
+<span class="fc" id="L63">        ConfigBuilder adjustedConfig = applyOverrides(line, configBuilder);</span>
+
+<span class="fc" id="L65">        Config config = adjustedConfig.build();</span>
+
+<span class="fc" id="L67">        String outputfilevalue = line.getOptionValue(&quot;outputfile&quot;, &quot;tessera-config.json&quot;);</span>
+
+<span class="fc" id="L69">        Path outputPath = Paths.get(outputfilevalue).toAbsolutePath();</span>
+
+<span class="fc" id="L71">        return writeToOutputFile(config, outputPath);</span>
+    }
+
+    static CliResult writeToOutputFile(Config config, Path outputPath) throws IOException {
+
+<span class="fc" id="L76">        System.out.printf(&quot;Saving config to  %s&quot;, outputPath);</span>
+<span class="fc" id="L77">        System.out.println();</span>
+<span class="fc" id="L78">        System.out.println(JaxbUtil.marshalToStringNoValidation(config));</span>
+<span class="fc" id="L79">        System.out.println();</span>
+
+<span class="fc" id="L81">        try (OutputStream outputStream = Files.newOutputStream(outputPath)) {</span>
+<span class="fc" id="L82">            JaxbUtil.marshal(config, outputStream);</span>
+<span class="fc" id="L83">            System.out.printf(&quot;Saved config to  %s&quot;, outputPath);</span>
+<span class="fc" id="L84">            System.out.println();</span>
+<span class="fc" id="L85">            return new CliResult(0, false, false, config);</span>
+<span class="fc" id="L86">        } catch (ConstraintViolationException validationException) {</span>
+<span class="fc" id="L87">            validationException.getConstraintViolations().stream()</span>
+<span class="fc" id="L88">                    .forEach(System.err::println);</span>
+<span class="fc" id="L89">            return new CliResult(2, false, false, config);</span>
+        }
+    }
+
+    static Optional&lt;Path&gt; resolveUnixFilePath(Path initial, String workdir, String fileName) {
+<span class="fc bfc" id="L94" title="All 4 branches covered.">        if (Objects.nonNull(workdir) &amp;&amp; Objects.nonNull(fileName)) {</span>
+<span class="fc" id="L95">            return Optional.of(Paths.get(workdir, fileName));</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        } else if(Objects.nonNull(fileName)) {</span>
+<span class="fc" id="L97">            return Optional.of(Paths.get(fileName));</span>
+        }
+
+<span class="fc" id="L100">        return Optional.ofNullable(initial);</span>
+
+    }
+
+    static Optional&lt;List&lt;Path&gt;&gt; resolveListOfUnixFilePaths(List&lt;Path&gt; initial, String workdir, List&lt;String&gt; fileNames) {
+<span class="fc bfc" id="L105" title="All 4 branches covered.">        if(Objects.nonNull(workdir) &amp;&amp; Objects.nonNull(fileNames)) {</span>
+<span class="fc" id="L106">            List&lt;Path&gt; paths = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            for(String fileName : fileNames) {</span>
+<span class="fc" id="L108">                paths.add(Paths.get(workdir, fileName));</span>
+<span class="fc" id="L109">            }</span>
+<span class="fc" id="L110">            return Optional.of(paths);</span>
+        }
+
+<span class="fc" id="L113">        return Optional.ofNullable(initial);</span>
+    }
+
+    static ConfigBuilder applyOverrides(CommandLine line, ConfigBuilder configBuilder) {
+
+<span class="fc" id="L118">        Config initialConfig = configBuilder.build();</span>
+
+<span class="fc" id="L120">        Optional.ofNullable(line.getOptionValue(&quot;url&quot;))</span>
+<span class="fc" id="L121">                .ifPresent(configBuilder::serverHostname);</span>
+
+<span class="fc" id="L123">        Optional.ofNullable(line.getOptionValue(&quot;port&quot;))</span>
+<span class="fc" id="L124">                .map(Integer::valueOf)</span>
+<span class="fc" id="L125">                .ifPresent(configBuilder::serverPort);</span>
+
+<span class="fc" id="L127">        resolveUnixFilePath(initialConfig.getUnixSocketFile(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;socket&quot;))</span>
+<span class="fc" id="L128">                .ifPresent(configBuilder::unixSocketFile);</span>
+
+<span class="fc" id="L130">        Optional.ofNullable(line.getOptionValues(&quot;othernodes&quot;))</span>
+<span class="fc" id="L131">                .map(Arrays::asList)</span>
+<span class="fc" id="L132">                .ifPresent(configBuilder::peers);</span>
+
+<span class="fc" id="L134">        KeyDataBuilder keyDataBuilder = KeyDataBuilder.create();</span>
+
+<span class="fc" id="L136">        Optional.ofNullable(line.getOptionValues(&quot;publickeys&quot;))</span>
+<span class="fc" id="L137">                .map(Arrays::asList)</span>
+<span class="fc" id="L138">                .ifPresent(keyDataBuilder::withPublicKeys);</span>
+
+<span class="fc" id="L140">        Optional.ofNullable(line.getOptionValues(&quot;privatekeys&quot;))</span>
+<span class="fc" id="L141">                .map(Arrays::asList)</span>
+<span class="fc" id="L142">                .ifPresent(keyDataBuilder::withPrivateKeys);</span>
+
+<span class="fc" id="L144">        Optional.ofNullable(line.getOptionValues(&quot;alwayssendto&quot;))</span>
+<span class="fc" id="L145">                .map(Arrays::asList)</span>
+<span class="fc" id="L146">                .ifPresent(configBuilder::alwaysSendTo);</span>
+
+<span class="fc" id="L148">        Optional.ofNullable(line.getOptionValue(&quot;workdir&quot;))</span>
+<span class="fc" id="L149">                .ifPresent(keyDataBuilder::withWorkingDirectory);</span>
+
+<span class="fc" id="L151">        resolveUnixFilePath(initialConfig.getKeys().getPasswordFile(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;passwords&quot;))</span>
+<span class="fc" id="L152">            .ifPresent(keyDataBuilder::withPrivateKeyPasswordFile);</span>
+
+<span class="fc" id="L154">        Optional.ofNullable(line.getOptionValue(&quot;storage&quot;))</span>
+<span class="fc" id="L155">                .map(JdbcConfigFactory::fromLegacyStorageString)</span>
+<span class="fc" id="L156">                .ifPresent(configBuilder::jdbcConfig);</span>
+
+<span class="fc" id="L158">        Optional.ofNullable(line.getOptionValue(&quot;ipwhitelist&quot;))</span>
+<span class="fc" id="L159">                .ifPresent(v -&gt; configBuilder.useWhiteList(true));</span>
+
+<span class="fc" id="L161">        Optional.ofNullable(line.getOptionValue(&quot;tls&quot;))</span>
+<span class="fc" id="L162">                .map(String::toUpperCase)</span>
+<span class="fc" id="L163">                .map(SslAuthenticationMode::valueOf)</span>
+<span class="fc" id="L164">                .ifPresent(configBuilder::sslAuthenticationMode);</span>
+
+<span class="fc" id="L166">        Optional.ofNullable(line.getOptionValue(&quot;tlsservertrust&quot;))</span>
+<span class="fc" id="L167">                .map(SslTrustModeFactory::resolveByLegacyValue)</span>
+<span class="fc" id="L168">                .ifPresent(configBuilder::sslServerTrustMode);</span>
+
+<span class="fc" id="L170">        Optional.ofNullable(line.getOptionValue(&quot;tlsclienttrust&quot;))</span>
+<span class="fc" id="L171">                .map(SslTrustModeFactory::resolveByLegacyValue)</span>
+<span class="fc" id="L172">                .ifPresent(configBuilder::sslClientTrustMode);</span>
+
+<span class="fc" id="L174">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getServerTlsCertificatePath(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsservercert&quot;))</span>
+<span class="fc" id="L175">            .ifPresent(configBuilder::sslServerTlsCertificatePath);</span>
+
+<span class="fc" id="L177">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getClientTlsCertificatePath(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsclientcert&quot;))</span>
+<span class="fc" id="L178">            .ifPresent(configBuilder::sslClientTlsCertificatePath);</span>
+
+<span class="fc" id="L180">        Optional.ofNullable(line.getOptionValues(&quot;tlsserverchain&quot;))</span>
+<span class="fc" id="L181">                .map(Arrays::asList)</span>
+<span class="fc" id="L182">                .ifPresent(l -&gt; {</span>
+<span class="fc" id="L183">                    List&lt;Path&gt; sslServerTrustCertificates = resolveListOfUnixFilePaths(</span>
+<span class="fc" id="L184">                        initialConfig.getServerConfig().getSslConfig().getServerTrustCertificates(),</span>
+<span class="fc" id="L185">                        line.getOptionValue(&quot;workdir&quot;),</span>
+                        l
+<span class="fc" id="L187">                    ).get();</span>
+<span class="fc" id="L188">                    configBuilder.sslServerTrustCertificates(sslServerTrustCertificates);</span>
+<span class="fc" id="L189">                });</span>
+
+<span class="fc" id="L191">        Optional.ofNullable(line.getOptionValues(&quot;tlsclientchain&quot;))</span>
+<span class="fc" id="L192">                .map(Arrays::asList)</span>
+<span class="fc" id="L193">                .ifPresent(l -&gt; {</span>
+<span class="fc" id="L194">                    List&lt;Path&gt; sslClientTrustCertificates = resolveListOfUnixFilePaths(</span>
+<span class="fc" id="L195">                        initialConfig.getServerConfig().getSslConfig().getClientTrustCertificates(),</span>
+<span class="fc" id="L196">                        line.getOptionValue(&quot;workdir&quot;),</span>
+                        l
+<span class="fc" id="L198">                    ).get();</span>
+<span class="fc" id="L199">                    configBuilder.sslClientTrustCertificates(sslClientTrustCertificates);</span>
+<span class="fc" id="L200">                });</span>
+
+<span class="fc" id="L202">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getServerTlsKeyPath(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsserverkey&quot;))</span>
+<span class="fc" id="L203">            .ifPresent(configBuilder::sslServerTlsKeyPath);</span>
+
+<span class="fc" id="L205">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getClientTlsKeyPath(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsclientkey&quot;))</span>
+<span class="fc" id="L206">            .ifPresent(configBuilder::sslClientTlsKeyPath);</span>
+
+<span class="fc" id="L208">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getKnownServersFile(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsknownservers&quot;))</span>
+<span class="fc" id="L209">            .ifPresent(configBuilder::sslKnownServersFile);</span>
+
+<span class="fc" id="L211">        resolveUnixFilePath(initialConfig.getServerConfig().getSslConfig().getKnownClientsFile(), line.getOptionValue(&quot;workdir&quot;), line.getOptionValue(&quot;tlsknownclients&quot;))</span>
+<span class="fc" id="L212">            .ifPresent(configBuilder::sslKnownClientsFile);</span>
+
+<span class="fc" id="L214">        final KeyConfiguration keyConfiguration = keyDataBuilder.build();</span>
+
+<span class="fc bfc" id="L216" title="All 2 branches covered.">        if (!keyConfiguration.getKeyData().isEmpty()) {</span>
+<span class="fc" id="L217">            configBuilder.keyData(keyConfiguration);</span>
+        }
+
+<span class="fc" id="L220">        return configBuilder;</span>
+    }
+
+    static Options buildOptions() {
+
+<span class="fc" id="L225">        Options options = new Options();</span>
+<span class="fc" id="L226">        options.addOption(</span>
+<span class="fc" id="L227">                Option.builder()</span>
+<span class="fc" id="L228">                        .longOpt(&quot;url&quot;)</span>
+<span class="fc" id="L229">                        .desc(&quot;URL for this node (i.e. the address advertised to other nodes)&quot;)</span>
+<span class="fc" id="L230">                        .hasArg(true)</span>
+<span class="fc" id="L231">                        .optionalArg(false)</span>
+<span class="fc" id="L232">                        .numberOfArgs(1)</span>
+<span class="fc" id="L233">                        .argName(&quot;URL&quot;)</span>
+<span class="fc" id="L234">                        .build());</span>
+
+<span class="fc" id="L236">        options.addOption(</span>
+<span class="fc" id="L237">                Option.builder()</span>
+<span class="fc" id="L238">                        .longOpt(&quot;port&quot;)</span>
+<span class="fc" id="L239">                        .desc(&quot;Port to listen on for the public API&quot;)</span>
+<span class="fc" id="L240">                        .hasArg(true)</span>
+<span class="fc" id="L241">                        .optionalArg(false)</span>
+<span class="fc" id="L242">                        .numberOfArgs(1)</span>
+<span class="fc" id="L243">                        .argName(&quot;NUM&quot;)</span>
+<span class="fc" id="L244">                        .valueSeparator('=')</span>
+<span class="fc" id="L245">                        .build());</span>
+
+<span class="fc" id="L247">        options.addOption(</span>
+<span class="fc" id="L248">                Option.builder()</span>
+<span class="fc" id="L249">                        .longOpt(&quot;workdir&quot;)</span>
+<span class="fc" id="L250">                        .desc(&quot;Working directory to use (relative paths specified for other options are relative to the working directory)&quot;)</span>
+<span class="fc" id="L251">                        .hasArg(true)</span>
+<span class="fc" id="L252">                        .optionalArg(false)</span>
+<span class="fc" id="L253">                        .numberOfArgs(1)</span>
+<span class="fc" id="L254">                        .argName(&quot;DIR&quot;)</span>
+<span class="fc" id="L255">                        .build());</span>
+
+<span class="fc" id="L257">        options.addOption(</span>
+<span class="fc" id="L258">                Option.builder()</span>
+<span class="fc" id="L259">                        .longOpt(&quot;socket&quot;)</span>
+<span class="fc" id="L260">                        .desc(&quot;Path to IPC socket file to create for private API access&quot;)</span>
+<span class="fc" id="L261">                        .hasArg(true)</span>
+<span class="fc" id="L262">                        .optionalArg(false)</span>
+<span class="fc" id="L263">                        .numberOfArgs(1)</span>
+<span class="fc" id="L264">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L265">                        .build());</span>
+
+<span class="fc" id="L267">        options.addOption(</span>
+<span class="fc" id="L268">                Option.builder()</span>
+<span class="fc" id="L269">                        .longOpt(&quot;othernodes&quot;)</span>
+<span class="fc" id="L270">                        .desc(&quot;Comma-separated list of other node URLs to connect to on startup (this list may be incomplete)&quot;)</span>
+<span class="fc" id="L271">                        .hasArg(true)</span>
+<span class="fc" id="L272">                        .optionalArg(false)</span>
+<span class="fc" id="L273">                        .hasArgs()</span>
+<span class="fc" id="L274">                        .argName(&quot;URL...&quot;)</span>
+<span class="fc" id="L275">                        .valueSeparator(',')</span>
+<span class="fc" id="L276">                        .build());</span>
+
+<span class="fc" id="L278">        options.addOption(</span>
+<span class="fc" id="L279">                Option.builder()</span>
+<span class="fc" id="L280">                        .longOpt(&quot;publickeys&quot;)</span>
+<span class="fc" id="L281">                        .desc(&quot;Comma-separated list of paths to public keys to advertise&quot;)</span>
+<span class="fc" id="L282">                        .optionalArg(false)</span>
+<span class="fc" id="L283">                        .argName(&quot;FILE...&quot;)</span>
+<span class="fc" id="L284">                        .hasArgs()</span>
+<span class="fc" id="L285">                        .valueSeparator(',')</span>
+<span class="fc" id="L286">                        .build()</span>
+        );
+
+<span class="fc" id="L289">        options.addOption(</span>
+<span class="fc" id="L290">                Option.builder()</span>
+<span class="fc" id="L291">                        .longOpt(&quot;privatekeys&quot;)</span>
+<span class="fc" id="L292">                        .desc(&quot;Comma-separated list of paths to private keys (these must be given in the same corresponding order as --publickeys)&quot;)</span>
+<span class="fc" id="L293">                        .optionalArg(false)</span>
+<span class="fc" id="L294">                        .argName(&quot;FILE...&quot;)</span>
+<span class="fc" id="L295">                        .hasArgs()</span>
+<span class="fc" id="L296">                        .valueSeparator(',')</span>
+<span class="fc" id="L297">                        .build()</span>
+        );
+
+<span class="fc" id="L300">        options.addOption(</span>
+<span class="fc" id="L301">                Option.builder()</span>
+<span class="fc" id="L302">                        .longOpt(&quot;passwords&quot;)</span>
+<span class="fc" id="L303">                        .desc(&quot;A file containing the passwords for the specified --privatekeys, one per line, in the same order (if one key is not locked, add an empty line)&quot;)</span>
+<span class="fc" id="L304">                        .optionalArg(false)</span>
+<span class="fc" id="L305">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L306">                        .hasArg()</span>
+<span class="fc" id="L307">                        .build()</span>
+        );
+
+<span class="fc" id="L310">        options.addOption(</span>
+<span class="fc" id="L311">                Option.builder()</span>
+<span class="fc" id="L312">                        .longOpt(&quot;alwayssendto&quot;)</span>
+<span class="fc" id="L313">                        .desc(&quot;Comma-separated list of paths to public keys that are always included as recipients (these must be advertised somewhere)&quot;)</span>
+<span class="fc" id="L314">                        .optionalArg(false)</span>
+<span class="fc" id="L315">                        .argName(&quot;FILE...&quot;)</span>
+<span class="fc" id="L316">                        .hasArgs()</span>
+<span class="fc" id="L317">                        .valueSeparator(',')</span>
+<span class="fc" id="L318">                        .build()</span>
+        );
+
+<span class="fc" id="L321">        options.addOption(</span>
+<span class="fc" id="L322">                Option.builder()</span>
+<span class="fc" id="L323">                        .longOpt(&quot;storage&quot;)</span>
+<span class="fc" id="L324">                        .optionalArg(false)</span>
+<span class="fc" id="L325">                        .argName(&quot;STRING&quot;)</span>
+<span class="fc" id="L326">                        .desc(&quot;Storage string specifying a storage engine and/or storage path&quot;)</span>
+<span class="fc" id="L327">                        .hasArg()</span>
+<span class="fc" id="L328">                        .build()</span>
+        );
+
+<span class="fc" id="L331">        options.addOption(</span>
+<span class="fc" id="L332">                Option.builder()</span>
+<span class="fc" id="L333">                        .longOpt(&quot;tls&quot;)</span>
+<span class="fc" id="L334">                        .desc(&quot;TLS status (strict, off)&quot;)</span>
+<span class="fc" id="L335">                        .optionalArg(false)</span>
+<span class="fc" id="L336">                        .argName(&quot;STATUS&quot;)</span>
+<span class="fc" id="L337">                        .hasArg()</span>
+<span class="fc" id="L338">                        .build()</span>
+        );
+
+<span class="fc" id="L341">        options.addOption(</span>
+<span class="fc" id="L342">                Option.builder()</span>
+<span class="fc" id="L343">                        .longOpt(&quot;tlsservercert&quot;)</span>
+<span class="fc" id="L344">                        .desc(&quot;TLS certificate file to use for the public API&quot;)</span>
+<span class="fc" id="L345">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L346">                        .numberOfArgs(1)</span>
+<span class="fc" id="L347">                        .build()</span>
+        );
+
+<span class="fc" id="L350">        options.addOption(</span>
+<span class="fc" id="L351">                Option.builder()</span>
+<span class="fc" id="L352">                        .longOpt(&quot;tlsserverchain&quot;)</span>
+<span class="fc" id="L353">                        .desc(&quot;Comma separated list of TLS chain certificate files to use for the public API&quot;)</span>
+<span class="fc" id="L354">                        .argName(&quot;FILE...&quot;)</span>
+<span class="fc" id="L355">                        .hasArgs()</span>
+<span class="fc" id="L356">                        .build()</span>
+        );
+
+<span class="fc" id="L359">        options.addOption(</span>
+<span class="fc" id="L360">                Option.builder()</span>
+<span class="fc" id="L361">                        .longOpt(&quot;tlsserverkey&quot;)</span>
+<span class="fc" id="L362">                        .desc(&quot;TLS key file to use for the public API&quot;)</span>
+<span class="fc" id="L363">                        .optionalArg(false)</span>
+<span class="fc" id="L364">                        .hasArg()</span>
+<span class="fc" id="L365">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L366">                        .build()</span>
+        );
+
+<span class="fc" id="L369">        options.addOption(</span>
+<span class="fc" id="L370">                Option.builder()</span>
+<span class="fc" id="L371">                        .longOpt(&quot;tlsservertrust&quot;)</span>
+<span class="fc" id="L372">                        .optionalArg(false)</span>
+<span class="fc" id="L373">                        .hasArg()</span>
+<span class="fc" id="L374">                        .argName(&quot;STRING&quot;)</span>
+<span class="fc" id="L375">                        .desc(&quot;TLS server trust mode (whitelist, ca-or-tofu, ca, tofu, insecure-no-validation)&quot;)</span>
+<span class="fc" id="L376">                        .build()</span>
+        );
+
+        //           --tlsknownclients[=FILE]    TLS server known clients file for the ca-or-tofu, tofu and whitelist trust modes
+<span class="fc" id="L380">        options.addOption(</span>
+<span class="fc" id="L381">                Option.builder()</span>
+<span class="fc" id="L382">                        .longOpt(&quot;tlsknownclients&quot;)</span>
+<span class="fc" id="L383">                        .desc(&quot;TLS server known clients file for the ca-or-tofu, tofu and whitelist trust modes&quot;)</span>
+<span class="fc" id="L384">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L385">                        .hasArg()</span>
+<span class="fc" id="L386">                        .build()</span>
+        );
+
+        //           --tlsclientcert[=FILE]      TLS client certificate file to use for connections to other nodes
+<span class="fc" id="L390">        options.addOption(</span>
+<span class="fc" id="L391">                Option.builder()</span>
+<span class="fc" id="L392">                        .longOpt(&quot;tlsclientcert&quot;)</span>
+<span class="fc" id="L393">                        .desc(&quot;TLS client certificate file to use for connections to other nodes&quot;)</span>
+<span class="fc" id="L394">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L395">                        .hasArg()</span>
+<span class="fc" id="L396">                        .build()</span>
+        );
+
+        //           --tlsclientchain[=FILE...]  Comma separated list of TLS chain certificates to use for connections to other nodes
+<span class="fc" id="L400">        options.addOption(</span>
+<span class="fc" id="L401">                Option.builder()</span>
+<span class="fc" id="L402">                        .longOpt(&quot;tlsclientchain&quot;)</span>
+<span class="fc" id="L403">                        .desc(&quot;Comma separated list of TLS chain certificate files to use for connections to other nodes&quot;)</span>
+<span class="fc" id="L404">                        .argName(&quot;FILE...&quot;)</span>
+<span class="fc" id="L405">                        .hasArgs()</span>
+<span class="fc" id="L406">                        .build()</span>
+        );
+
+        //           --tlsclientkey[=FILE]       TLS key to use for connections to other nodes
+<span class="fc" id="L410">        options.addOption(</span>
+<span class="fc" id="L411">                Option.builder()</span>
+<span class="fc" id="L412">                        .longOpt(&quot;tlsclientkey&quot;)</span>
+<span class="fc" id="L413">                        .desc(&quot;TLS key file to use for connections to other nodes&quot;)</span>
+<span class="fc" id="L414">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L415">                        .hasArg()</span>
+<span class="fc" id="L416">                        .build()</span>
+        );
+
+        //           --tlsclienttrust[=STRING]   TLS client trust mode (whitelist, ca-or-tofu, ca, tofu, insecure-no-validation)
+<span class="fc" id="L420">        options.addOption(</span>
+<span class="fc" id="L421">                Option.builder()</span>
+<span class="fc" id="L422">                        .longOpt(&quot;tlsclienttrust&quot;)</span>
+<span class="fc" id="L423">                        .desc(&quot;TLS client trust mode (whitelist, ca-or-tofu, ca, tofu, insecure-no-validation)&quot;)</span>
+<span class="fc" id="L424">                        .argName(&quot;STRING&quot;)</span>
+<span class="fc" id="L425">                        .hasArg()</span>
+<span class="fc" id="L426">                        .build()</span>
+        );
+
+        //
+<span class="fc" id="L430">        options.addOption(</span>
+<span class="fc" id="L431">                Option.builder()</span>
+<span class="fc" id="L432">                        .longOpt(&quot;tlsknownservers&quot;)</span>
+<span class="fc" id="L433">                        .desc(&quot;TLS client known servers file for the ca-or-tofu, tofu and whitelist trust modes&quot;)</span>
+<span class="fc" id="L434">                        .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L435">                        .hasArg()</span>
+<span class="fc" id="L436">                        .build()</span>
+        );
+
+<span class="fc" id="L439">        options.addOption(</span>
+<span class="fc" id="L440">            Option.builder()</span>
+<span class="fc" id="L441">                .longOpt(&quot;tomlfile&quot;)</span>
+<span class="fc" id="L442">                .desc(&quot;TOML configuration input file.&quot;)</span>
+<span class="fc" id="L443">                .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L444">                .hasArg()</span>
+<span class="fc" id="L445">                .build()</span>
+        );
+
+<span class="fc" id="L448">        options.addOption(</span>
+<span class="fc" id="L449">            Option.builder()</span>
+<span class="fc" id="L450">                .longOpt(&quot;outputfile&quot;)</span>
+<span class="fc" id="L451">                .desc(&quot;Location to save generated Tessera configuration file.&quot;)</span>
+<span class="fc" id="L452">                .argName(&quot;FILE&quot;)</span>
+<span class="fc" id="L453">                .hasArg()</span>
+<span class="fc" id="L454">                .build()</span>
+        );
+
+<span class="fc" id="L457">        options.addOption(</span>
+<span class="fc" id="L458">            Option.builder()</span>
+<span class="fc" id="L459">                .longOpt(&quot;ipwhitelist&quot;)</span>
+<span class="fc" id="L460">                .desc(&quot;If provided, Tessera will use the othernodes as a whitelist.  Make sure any addresses included here are also in othernodes.&quot;)</span>
+<span class="fc" id="L461">                .hasArg()</span>
+<span class="fc" id="L462">                .argName(&quot;STRING...&quot;)</span>
+<span class="fc" id="L463">                .build()</span>
+        );
+
+<span class="fc" id="L466">        return options;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

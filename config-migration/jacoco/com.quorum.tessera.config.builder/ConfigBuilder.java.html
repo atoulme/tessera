@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ConfigBuilder.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config-migration</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.builder</a> &gt; <span class="el_source">ConfigBuilder.java</span></div><h1>ConfigBuilder.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.builder;
+
+import com.quorum.tessera.config.*;
+import com.quorum.tessera.nacl.Key;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.emptyList;
+
+public class ConfigBuilder {
+
+<span class="fc" id="L19">    private ConfigBuilder() {</span>
+<span class="fc" id="L20">    }</span>
+
+    public static ConfigBuilder create() {
+<span class="fc" id="L23">        return new ConfigBuilder();</span>
+    }
+
+    public static ConfigBuilder from(Config config) {
+
+<span class="fc" id="L28">        final ConfigBuilder configBuilder = ConfigBuilder.create();</span>
+<span class="fc" id="L29">        configBuilder.unixSocketFile(config.getUnixSocketFile());</span>
+
+<span class="fc" id="L31">        List&lt;String&gt; peers = Stream.of(config)</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">            .filter(c -&gt; c.getPeers() != null)</span>
+<span class="fc" id="L33">            .map(Config::getPeers)</span>
+<span class="fc" id="L34">            .flatMap(List::stream)</span>
+<span class="fc" id="L35">            .map(Peer::getUrl)</span>
+<span class="fc" id="L36">            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L38">        configBuilder.jdbcConfig(config.getJdbcConfig())</span>
+<span class="fc" id="L39">                .peers(peers)</span>
+<span class="fc" id="L40">                .serverHostname(config.getServerConfig().getHostName())</span>
+<span class="fc" id="L41">                .serverPort(config.getServerConfig().getPort())</span>
+<span class="fc" id="L42">                .useWhiteList(config.isUseWhiteList());</span>
+
+<span class="fc" id="L44">        final SslConfig sslConfig = config.getServerConfig().getSslConfig();</span>
+
+
+<span class="fc" id="L47">        configBuilder.sslAuthenticationMode(sslConfig.getTls())</span>
+<span class="fc" id="L48">                .sslClientTrustMode(sslConfig.getClientTrustMode())</span>
+<span class="fc" id="L49">                .sslClientKeyStorePath(Objects.toString(sslConfig.getClientKeyStore(), null))</span>
+<span class="fc" id="L50">                .sslClientKeyStorePassword(sslConfig.getClientKeyStorePassword())</span>
+<span class="fc" id="L51">                .sslClientTrustStorePath(Objects.toString(sslConfig.getClientTrustStore(), null))</span>
+<span class="fc" id="L52">                .sslClientTrustStorePassword(sslConfig.getClientTrustStorePassword())</span>
+<span class="fc" id="L53">                .sslClientTlsKeyPath(sslConfig.getClientTlsKeyPath())</span>
+<span class="fc" id="L54">                .sslClientTlsCertificatePath(sslConfig.getClientTlsCertificatePath())</span>
+<span class="fc bfc" id="L55" title="All 2 branches covered.">                .sslClientTrustCertificates(Objects.isNull(sslConfig.getClientTrustCertificates()) ?</span>
+                    EMPTY_LIST :
+<span class="fc" id="L57">                    sslConfig.getClientTrustCertificates()</span>
+                )
+<span class="fc" id="L59">                .sslKnownServersFile(sslConfig.getKnownServersFile())</span>
+<span class="fc" id="L60">                .sslServerTrustMode(sslConfig.getServerTrustMode())</span>
+<span class="fc" id="L61">                .sslServerKeyStorePath(Objects.toString(sslConfig.getServerKeyStore(), null))</span>
+<span class="fc" id="L62">                .sslServerKeyStorePassword(sslConfig.getServerKeyStorePassword())</span>
+<span class="fc" id="L63">                .sslServerTrustStorePath(Objects.toString(sslConfig.getServerTrustStore(), null))</span>
+<span class="fc" id="L64">                .sslServerTrustStorePassword(sslConfig.getServerTrustStorePassword())</span>
+<span class="fc" id="L65">                .sslServerTlsKeyPath(sslConfig.getServerTlsKeyPath())</span>
+<span class="fc" id="L66">                .sslServerTlsCertificatePath(sslConfig.getServerTlsCertificatePath())</span>
+<span class="fc bfc" id="L67" title="All 2 branches covered.">                .sslServerTrustCertificates(Objects.isNull(sslConfig.getServerTrustCertificates()) ?</span>
+                    EMPTY_LIST :
+<span class="fc" id="L69">                    sslConfig.getServerTrustCertificates()</span>
+                )
+<span class="fc" id="L71">                .sslKnownClientsFile(sslConfig.getKnownClientsFile())</span>
+<span class="fc" id="L72">                .sslKnownClientsFile(sslConfig.getKnownClientsFile())</span>
+<span class="fc" id="L73">                .sslKnownServersFile(sslConfig.getKnownServersFile())</span>
+<span class="fc" id="L74">                .sslClientTlsCertificatePath(sslConfig.getClientTlsCertificatePath())</span>
+<span class="fc" id="L75">                .sslServerTlsCertificatePath(sslConfig.getServerTlsCertificatePath())</span>
+<span class="fc" id="L76">                .keyData(config.getKeys())</span>
+<span class="fc" id="L77">                .sslClientTlsKeyPath(sslConfig.getClientTlsKeyPath())</span>
+<span class="fc" id="L78">                .sslServerTlsKeyPath(sslConfig.getServerTlsKeyPath())</span>
+<span class="fc" id="L79">                .alwaysSendToKeys(config.getAlwaysSendTo());</span>
+
+<span class="fc" id="L81">        return configBuilder;</span>
+
+    }
+
+    private String serverHostname;
+
+    private Integer serverPort;
+
+    private JdbcConfig jdbcConfig;
+
+    private Path unixSocketFile;
+
+    private List&lt;String&gt; peers;
+
+    private List&lt;String&gt; alwaysSendTo;
+
+    private List&lt;Key&gt; alwaysSendToKeys;
+
+    private KeyConfiguration keyData;
+
+    private SslAuthenticationMode sslAuthenticationMode;
+
+    private SslTrustMode sslServerTrustMode;
+
+    private String sslServerKeyStorePath;
+
+    private String sslServerTrustStorePassword;
+
+    private String sslServerKeyStorePassword;
+
+    private String sslServerTrustStorePath;
+
+<span class="fc" id="L113">    private List&lt;Path&gt; sslServerTrustCertificates = emptyList();</span>
+
+    private String sslClientKeyStorePath;
+
+    private String sslClientKeyStorePassword;
+
+    private String sslClientTrustStorePassword;
+
+    private String sslClientTrustStorePath;
+
+<span class="fc" id="L123">    private List&lt;Path&gt; sslClientTrustCertificates = emptyList();</span>
+
+    private SslTrustMode sslClientTrustMode;
+
+    private Path sslKnownClientsFile;
+
+    private Path sslKnownServersFile;
+
+    private Path sslServerTlsKeyPath;
+
+    private Path sslServerTlsCertificatePath;
+
+    private Path sslClientTlsKeyPath;
+
+    private Path sslClientTlsCertificatePath;
+
+    private boolean useWhiteList;
+
+    public ConfigBuilder sslServerTrustMode(SslTrustMode sslServerTrustMode) {
+<span class="fc" id="L142">        this.sslServerTrustMode = sslServerTrustMode;</span>
+<span class="fc" id="L143">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTrustMode(SslTrustMode sslClientTrustMode) {
+<span class="fc" id="L147">        this.sslClientTrustMode = sslClientTrustMode;</span>
+<span class="fc" id="L148">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerKeyStorePath(String sslServerKeyStorePath) {
+<span class="fc" id="L152">        this.sslServerKeyStorePath = sslServerKeyStorePath;</span>
+<span class="fc" id="L153">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerTrustStorePassword(String sslServerTrustStorePassword) {
+<span class="fc" id="L157">        this.sslServerTrustStorePassword = sslServerTrustStorePassword;</span>
+<span class="fc" id="L158">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerKeyStorePassword(String sslServerKeyStorePassword) {
+<span class="fc" id="L162">        this.sslServerKeyStorePassword = sslServerKeyStorePassword;</span>
+<span class="fc" id="L163">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerTrustStorePath(String sslServerTrustStorePath) {
+<span class="fc" id="L167">        this.sslServerTrustStorePath = sslServerTrustStorePath;</span>
+<span class="fc" id="L168">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerTrustCertificates(List&lt;Path&gt; sslServerTrustCertificates) {
+<span class="fc" id="L172">        this.sslServerTrustCertificates = sslServerTrustCertificates;</span>
+<span class="fc" id="L173">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTrustStorePassword(String sslClientTrustStorePassword) {
+<span class="fc" id="L177">        this.sslClientTrustStorePassword = sslClientTrustStorePassword;</span>
+<span class="fc" id="L178">        return this;</span>
+    }
+
+    public ConfigBuilder unixSocketFile(Path unixSocketFile) {
+<span class="fc" id="L182">        this.unixSocketFile = unixSocketFile;</span>
+<span class="fc" id="L183">        return this;</span>
+    }
+
+    public ConfigBuilder serverHostname(String serverHostname) {
+<span class="fc" id="L187">        this.serverHostname = serverHostname;</span>
+<span class="fc" id="L188">        return this;</span>
+    }
+
+    public ConfigBuilder serverPort(Integer serverPort) {
+<span class="fc" id="L192">        this.serverPort = serverPort;</span>
+<span class="fc" id="L193">        return this;</span>
+    }
+
+    public ConfigBuilder jdbcConfig(JdbcConfig jdbcConfig) {
+<span class="fc" id="L197">        this.jdbcConfig = jdbcConfig;</span>
+<span class="fc" id="L198">        return this;</span>
+    }
+
+    public ConfigBuilder peers(List&lt;String&gt; peers) {
+<span class="fc" id="L202">        this.peers = peers;</span>
+<span class="fc" id="L203">        return this;</span>
+    }
+
+    public ConfigBuilder alwaysSendTo(List&lt;String&gt; alwaysSendTo) {
+<span class="fc" id="L207">        this.alwaysSendTo = alwaysSendTo;</span>
+<span class="fc" id="L208">        return this;</span>
+    }
+
+    public ConfigBuilder alwaysSendToKeys(List&lt;Key&gt; alwaysSendToKeys) {
+<span class="fc" id="L212">        this.alwaysSendToKeys = alwaysSendToKeys;</span>
+<span class="fc" id="L213">        return this;</span>
+    }
+
+    public ConfigBuilder sslKnownClientsFile(Path knownClientsFile) {
+<span class="fc" id="L217">        this.sslKnownClientsFile = knownClientsFile;</span>
+<span class="fc" id="L218">        return this;</span>
+    }
+
+    public ConfigBuilder sslKnownServersFile(Path knownServersFile) {
+<span class="fc" id="L222">        this.sslKnownServersFile = knownServersFile;</span>
+<span class="fc" id="L223">        return this;</span>
+    }
+
+    public ConfigBuilder sslAuthenticationMode(SslAuthenticationMode sslAuthenticationMode) {
+<span class="fc" id="L227">        this.sslAuthenticationMode = sslAuthenticationMode;</span>
+<span class="fc" id="L228">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientKeyStorePath(String sslClientKeyStorePath) {
+<span class="fc" id="L232">        this.sslClientKeyStorePath = sslClientKeyStorePath;</span>
+<span class="fc" id="L233">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTrustCertificates(List&lt;Path&gt; sslClientTrustCertificates) {
+<span class="fc" id="L237">        this.sslClientTrustCertificates = sslClientTrustCertificates;</span>
+<span class="fc" id="L238">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTrustStorePath(String sslClientTrustStorePath) {
+<span class="fc" id="L242">        this.sslClientTrustStorePath = sslClientTrustStorePath;</span>
+<span class="fc" id="L243">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientKeyStorePassword(String sslClientKeyStorePassword) {
+<span class="fc" id="L247">        this.sslClientKeyStorePassword = sslClientKeyStorePassword;</span>
+<span class="fc" id="L248">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerTlsKeyPath(Path sslServerTlsKeyPath) {
+<span class="fc" id="L252">        this.sslServerTlsKeyPath = sslServerTlsKeyPath;</span>
+<span class="fc" id="L253">        return this;</span>
+    }
+
+    public ConfigBuilder sslServerTlsCertificatePath(Path sslServerTlsCertificatePath) {
+<span class="fc" id="L257">        this.sslServerTlsCertificatePath = sslServerTlsCertificatePath;</span>
+<span class="fc" id="L258">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTlsKeyPath(Path sslClientTlsKeyPath) {
+<span class="fc" id="L262">        this.sslClientTlsKeyPath = sslClientTlsKeyPath;</span>
+<span class="fc" id="L263">        return this;</span>
+    }
+
+    public ConfigBuilder sslClientTlsCertificatePath(Path sslClientTlsCertificatePath) {
+<span class="fc" id="L267">        this.sslClientTlsCertificatePath = sslClientTlsCertificatePath;</span>
+<span class="fc" id="L268">        return this;</span>
+    }
+
+    public ConfigBuilder keyData(KeyConfiguration keyData) {
+<span class="fc" id="L272">        this.keyData = keyData;</span>
+<span class="fc" id="L273">        return this;</span>
+    }
+
+    public ConfigBuilder useWhiteList(boolean useWhiteList) {
+<span class="fc" id="L277">        this.useWhiteList = useWhiteList;</span>
+<span class="fc" id="L278">        return this;</span>
+    }
+
+    static Path toPath(String value) {
+<span class="fc" id="L282">        return Optional.ofNullable(value)</span>
+<span class="fc" id="L283">                .map(Paths::get)</span>
+<span class="fc" id="L284">                .orElse(null);</span>
+    }
+
+    public Config build() {
+
+<span class="fc" id="L289">        boolean generateKeyStoreIfNotExisted = true;</span>
+
+<span class="fc" id="L291">        SslConfig sslConfig = new SslConfig(</span>
+                sslAuthenticationMode,
+                generateKeyStoreIfNotExisted,
+<span class="fc" id="L294">                toPath(sslServerKeyStorePath),</span>
+                sslServerKeyStorePassword,
+<span class="fc" id="L296">                toPath(sslServerTrustStorePath),</span>
+                sslServerTrustStorePassword,
+                sslServerTrustMode,
+<span class="fc" id="L299">                toPath(sslClientKeyStorePath),</span>
+                sslClientKeyStorePassword,
+<span class="fc" id="L301">                toPath(sslClientTrustStorePath),</span>
+                sslClientTrustStorePassword,
+                sslClientTrustMode,
+                sslKnownClientsFile,
+                sslKnownServersFile,
+<span class="fc" id="L306">                sslServerTrustCertificates.stream()</span>
+<span class="fc" id="L307">                        .filter(Objects::nonNull)</span>
+<span class="fc" id="L308">                        .collect(Collectors.toList()),</span>
+<span class="fc" id="L309">                sslClientTrustCertificates.stream()</span>
+<span class="fc" id="L310">                        .filter(Objects::nonNull)</span>
+<span class="fc" id="L311">                        .collect(Collectors.toList()),</span>
+                sslServerTlsKeyPath,
+                sslServerTlsCertificatePath,
+                sslClientTlsKeyPath,
+                sslClientTlsCertificatePath
+        );
+
+<span class="fc" id="L318">        final ServerConfig serverConfig = new ServerConfig(serverHostname, serverPort, sslConfig, null);</span>
+
+<span class="fc" id="L320">        final List&lt;Peer&gt; peerList = peers</span>
+<span class="fc" id="L321">            .stream()</span>
+<span class="fc" id="L322">                .map(Peer::new)</span>
+<span class="fc" id="L323">                .collect(Collectors.toList());</span>
+
+        final List&lt;Key&gt; forwardingKeys;
+<span class="fc bfc" id="L326" title="All 2 branches covered.">        if(alwaysSendTo != null) {</span>
+<span class="fc" id="L327">            List&lt;String&gt; keyList = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L329" title="All 2 branches covered.">            for(String keyPath : alwaysSendTo) {</span>
+                try {
+<span class="fc" id="L331">                    List&lt;String&gt; keysFromFile = Files.readAllLines(Paths.get(keyPath));</span>
+<span class="fc" id="L332">                    keyList.addAll(keysFromFile);</span>
+<span class="fc" id="L333">                } catch (IOException e) {</span>
+<span class="fc" id="L334">                    System.err.println(&quot;Error reading alwayssendto file: &quot; + e.getMessage());</span>
+<span class="fc" id="L335">                }</span>
+<span class="fc" id="L336">            }</span>
+
+<span class="fc" id="L338">            forwardingKeys = keyList.stream()</span>
+<span class="fc" id="L339">                                    .map(Base64.getDecoder()::decode)</span>
+<span class="fc" id="L340">                                    .map(Key::new)</span>
+<span class="fc" id="L341">                                    .collect(Collectors.toList());</span>
+<span class="fc" id="L342">        } else {</span>
+<span class="fc" id="L343">            forwardingKeys = alwaysSendToKeys;</span>
+        }
+
+<span class="fc" id="L346">        return new Config(jdbcConfig, serverConfig, peerList, keyData, forwardingKeys, unixSocketFile, useWhiteList);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

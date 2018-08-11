@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TomlConfigFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config-migration</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.migration</a> &gt; <span class="el_source">TomlConfigFactory.java</span></div><h1>TomlConfigFactory.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.migration;
+
+import com.quorum.tessera.config.*;
+import com.quorum.tessera.config.builder.ConfigBuilder;
+import com.quorum.tessera.config.builder.JdbcConfigFactory;
+import com.quorum.tessera.config.builder.KeyDataBuilder;
+import com.quorum.tessera.config.util.JaxbUtil;
+import com.quorum.tessera.io.FilesDelegate;
+import com.quorum.tessera.io.IOCallback;
+import com.moandjiezana.toml.Toml;
+import com.quorum.tessera.config.builder.SslTrustModeFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+import javax.json.JsonReader;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+public class TomlConfigFactory implements ConfigFactory {
+
+<span class="fc" id="L34">    private static final Logger LOGGER = LoggerFactory.getLogger(TomlConfigFactory.class);</span>
+
+    private final FilesDelegate filesDelegate;
+
+    public TomlConfigFactory() {
+<span class="fc" id="L39">        this(FilesDelegate.create());</span>
+<span class="fc" id="L40">    }</span>
+
+<span class="fc" id="L42">    public TomlConfigFactory(FilesDelegate filesDelegate) {</span>
+<span class="fc" id="L43">        this.filesDelegate = Objects.requireNonNull(filesDelegate);</span>
+<span class="fc" id="L44">    }</span>
+
+    @Override
+    public Config create(InputStream configData, ArgonOptions options, String... filenames) {
+<span class="fc" id="L48">        Objects.requireNonNull(configData, &quot;No config data provided. &quot;);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (filenames.length != 0) {</span>
+<span class="fc" id="L50">            throw new UnsupportedOperationException(&quot;keyConfigData arg is not implemented for TomlConfigFactory&quot;);</span>
+        }
+
+<span class="fc" id="L53">        Toml toml = new Toml().read(configData);</span>
+<span class="fc" id="L54">        toml.toMap().entrySet().stream().forEach(entry -&gt; {</span>
+<span class="fc" id="L55">            LOGGER.debug(&quot;Found entry in toml file : {} {}&quot;, entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L56">        });</span>
+
+<span class="fc" id="L58">        final String url = toml.getString(&quot;url&quot;);</span>
+
+<span class="fc" id="L60">        final Integer port = Optional.ofNullable(toml.getLong(&quot;port&quot;))</span>
+<span class="fc" id="L61">                                                    .map(Long::intValue)</span>
+<span class="fc" id="L62">                                                    .orElse(null);</span>
+
+<span class="fc" id="L64">        final String workdir = toml.getString(&quot;workdir&quot;, &quot;&quot;);</span>
+<span class="fc" id="L65">        final String socket = toml.getString(&quot;socket&quot;);</span>
+
+        final Path unixSocketFile;
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if(socket != null) {</span>
+<span class="fc" id="L69">            unixSocketFile = Paths.get(workdir, socket);</span>
+        } else {
+<span class="fc" id="L71">            unixSocketFile = null;</span>
+        }
+
+<span class="fc" id="L74">        final String tls = toml.getString(&quot;tls&quot;, &quot;strict&quot;).toUpperCase();</span>
+
+<span class="fc" id="L76">        final List&lt;String&gt; othernodes = toml.getList(&quot;othernodes&quot;, Collections.emptyList());</span>
+
+<span class="fc" id="L78">        final List&lt;String&gt; publicKeyList = toml.getList(&quot;publickeys&quot;, Collections.emptyList());</span>
+
+<span class="fc" id="L80">        final List&lt;String&gt; privateKeyList = toml.getList(&quot;privatekeys&quot;, Collections.emptyList());</span>
+
+<span class="fc" id="L82">        final Optional&lt;String&gt; privateKeyPasswordFile = Optional.ofNullable(toml.getString(&quot;passwords&quot;));</span>
+        final Path privateKeyPasswordPath;
+<span class="fc bfc" id="L84" title="All 2 branches covered.">        if(privateKeyPasswordFile.isPresent()) {</span>
+<span class="fc" id="L85">            privateKeyPasswordPath = Paths.get(workdir, privateKeyPasswordFile.get());</span>
+        } else {
+<span class="fc" id="L87">            privateKeyPasswordPath = null;</span>
+        }
+
+        KeyConfiguration keyData;
+<span class="fc bfc" id="L91" title="All 4 branches covered.">        if(!publicKeyList.isEmpty() || !privateKeyList.isEmpty()) {</span>
+<span class="fc" id="L92">            keyData = KeyDataBuilder.create()</span>
+<span class="fc" id="L93">                                    .withPublicKeys(publicKeyList)</span>
+<span class="fc" id="L94">                                    .withPrivateKeys(privateKeyList)</span>
+<span class="fc" id="L95">                                    .withPrivateKeyPasswordFile(privateKeyPasswordPath)</span>
+<span class="fc" id="L96">                                    .withWorkingDirectory(workdir)</span>
+<span class="fc" id="L97">                                    .build();</span>
+        } else {
+<span class="fc" id="L99">            keyData = new KeyConfiguration(null, null, null);</span>
+        }
+
+<span class="fc" id="L102">        final List&lt;String&gt; alwaysSendToKeyPaths = toml.getList(&quot;alwayssendto&quot;, Collections.emptyList());</span>
+
+<span class="fc" id="L104">        final String storage = toml.getString(&quot;storage&quot;, &quot;memory&quot;);</span>
+
+<span class="fc" id="L106">        final List&lt;String&gt; ipwhitelist = toml.getList(&quot;ipwhitelist&quot;, Collections.EMPTY_LIST);</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">        final boolean useWhiteList = !ipwhitelist.isEmpty();</span>
+
+        //Server side
+<span class="fc" id="L110">        final String tlsservertrust = toml.getString(&quot;tlsservertrust&quot;, &quot;tofu&quot;);</span>
+
+<span class="fc" id="L112">        final Optional&lt;String&gt; tlsserverkeyStr = Optional.ofNullable(toml.getString(&quot;tlsserverkey&quot;));</span>
+<span class="fc" id="L113">        final Path tlsserverkey = tlsserverkeyStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+<span class="fc" id="L115">        final Optional&lt;String&gt; tlsservercertStr = Optional.ofNullable(toml.getString(&quot;tlsservercert&quot;));</span>
+<span class="fc" id="L116">        final Path tlsservercert = tlsservercertStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+<span class="fc" id="L118">        final List&lt;String&gt; tlsserverchainnames = toml.getList(&quot;tlsserverchain&quot;, Collections.emptyList());</span>
+<span class="fc" id="L119">        List&lt;Path&gt; tlsserverchain = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        for(String name : tlsserverchainnames) {</span>
+<span class="fc" id="L121">            tlsserverchain.add(Paths.get(workdir, name));</span>
+<span class="fc" id="L122">        }</span>
+
+<span class="fc" id="L124">        final Optional&lt;String&gt; tlsknownclientsStr = Optional.ofNullable(toml.getString(&quot;tlsknownclients&quot;));</span>
+<span class="fc" id="L125">        final Path tlsknownclients = tlsknownclientsStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+        //Client side
+<span class="fc" id="L128">        final String tlsclienttrust = toml.getString(&quot;tlsclienttrust&quot;, &quot;tofu&quot;);</span>
+
+<span class="fc" id="L130">        final Optional&lt;String&gt; tlsclientkeyStr = Optional.ofNullable(toml.getString(&quot;tlsclientkey&quot;));</span>
+<span class="fc" id="L131">        final Path tlsclientkey = tlsclientkeyStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+<span class="fc" id="L133">        final Optional&lt;String&gt; tlsclientcertStr = Optional.ofNullable(toml.getString(&quot;tlsclientcert&quot;));</span>
+<span class="fc" id="L134">        final Path tlsclientcert = tlsclientcertStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+<span class="fc" id="L136">        final List&lt;String&gt; tlsclientchainnames = toml.getList(&quot;tlsclientchain&quot;, Collections.emptyList());</span>
+<span class="fc" id="L137">        List&lt;Path&gt; tlsclientchain = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        for(String name : tlsclientchainnames) {</span>
+<span class="fc" id="L139">            tlsclientchain.add(Paths.get(workdir, name));</span>
+<span class="fc" id="L140">        }</span>
+
+<span class="fc" id="L142">        final Optional&lt;String&gt; tlsknownserversStr = Optional.ofNullable(toml.getString(&quot;tlsknownservers&quot;));</span>
+<span class="fc" id="L143">        final Path tlsknownservers = tlsknownserversStr.map(s -&gt; Paths.get(workdir, s)).orElse(null);</span>
+
+<span class="fc" id="L145">        ConfigBuilder configBuilder = ConfigBuilder.create()</span>
+<span class="fc" id="L146">                .serverPort(port)</span>
+<span class="fc" id="L147">                .serverHostname(url)</span>
+<span class="fc" id="L148">                .unixSocketFile(unixSocketFile)</span>
+<span class="fc" id="L149">                .sslAuthenticationMode(SslAuthenticationMode.valueOf(tls))</span>
+<span class="fc" id="L150">                .sslServerTrustMode(SslTrustModeFactory.resolveByLegacyValue(tlsservertrust))</span>
+<span class="fc" id="L151">                .sslServerTlsKeyPath(tlsserverkey)</span>
+<span class="fc" id="L152">                .sslServerTlsCertificatePath(tlsservercert)</span>
+<span class="fc" id="L153">                .sslServerTrustCertificates(tlsserverchain)</span>
+<span class="fc" id="L154">                .sslKnownClientsFile(tlsknownclients)</span>
+<span class="fc" id="L155">                .sslClientTrustMode(SslTrustModeFactory.resolveByLegacyValue(tlsclienttrust))</span>
+<span class="fc" id="L156">                .sslClientTlsKeyPath(tlsclientkey)</span>
+<span class="fc" id="L157">                .sslClientTlsCertificatePath(tlsclientcert)</span>
+<span class="fc" id="L158">                .sslClientTrustCertificates(tlsclientchain)</span>
+<span class="fc" id="L159">                .sslKnownServersFile(tlsknownservers)</span>
+<span class="fc" id="L160">                .peers(othernodes)</span>
+<span class="fc" id="L161">                .alwaysSendTo(alwaysSendToKeyPaths)</span>
+<span class="fc" id="L162">                .useWhiteList(useWhiteList)</span>
+<span class="fc" id="L163">                .keyData(keyData);</span>
+
+<span class="fc" id="L165">        Optional.ofNullable(storage)</span>
+<span class="fc" id="L166">                .map(JdbcConfigFactory::fromLegacyStorageString).ifPresent(configBuilder::jdbcConfig);</span>
+
+<span class="fc" id="L168">        return configBuilder.build();</span>
+    }
+
+    static List&lt;KeyDataConfig&gt; createPrivateKeyData(List&lt;String&gt; privateKeys, List&lt;String&gt; privateKeyPasswords) {
+
+        //Populate null values assume that they arent private
+<span class="fc" id="L174">        List&lt;String&gt; passwordList = new ArrayList&lt;&gt;(privateKeyPasswords);</span>
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        for (int i = privateKeyPasswords.size() - 1; i &lt; privateKeys.size(); i++) {</span>
+<span class="fc" id="L176">            passwordList.add(null);</span>
+        }
+
+<span class="fc" id="L179">        List&lt;JsonObject&gt; privateKeyJson = privateKeys</span>
+<span class="fc" id="L180">                .stream()</span>
+<span class="fc" id="L181">                .map(Paths::get)</span>
+<span class="fc" id="L182">                .map(path -&gt; IOCallback.execute(() -&gt; Files.newInputStream(path)))</span>
+<span class="fc" id="L183">                .map(Json::createReader)</span>
+<span class="fc" id="L184">                .map(JsonReader::readObject)</span>
+<span class="fc" id="L185">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L187">        List&lt;KeyDataConfig&gt; privateKeyData = IntStream</span>
+<span class="fc" id="L188">                .range(0, privateKeyJson.size())</span>
+                //FIXME: Canyt set to null value.. need to use addNull(&quot;password&quot;)
+<span class="fc" id="L190">                .mapToObj(i -&gt; {</span>
+
+<span class="fc" id="L192">                    final String password = passwordList.get(i);</span>
+<span class="fc" id="L193">                    final JsonObject keyDatC = Json.createObjectBuilder(privateKeyJson.get(i)).build();</span>
+
+<span class="fc" id="L195">                    final JsonObject dataNode = keyDatC.getJsonObject(&quot;data&quot;);</span>
+<span class="fc" id="L196">                    final JsonObjectBuilder ammendedDataNode = Json.createObjectBuilder(dataNode);</span>
+
+<span class="fc" id="L198">                    boolean isLocked = Objects.equals(keyDatC.getString(&quot;type&quot;), &quot;argon2sbox&quot;);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">                    if (isLocked) {</span>
+<span class="fc" id="L200">                        ammendedDataNode.add(&quot;password&quot;, Objects.requireNonNull(password, &quot;Password is required.&quot;));</span>
+                    }
+
+<span class="fc" id="L203">                    return Json.createObjectBuilder(keyDatC)</span>
+<span class="fc" id="L204">                            .remove(&quot;data&quot;)</span>
+<span class="fc" id="L205">                            .add(&quot;data&quot;, ammendedDataNode)</span>
+<span class="fc" id="L206">                            .build();</span>
+                })
+<span class="fc" id="L208">                .map(JsonObject::toString)</span>
+<span class="fc" id="L209">                .map(String::getBytes)</span>
+<span class="fc" id="L210">                .map(ByteArrayInputStream::new)</span>
+<span class="fc" id="L211">                .map(inputStream -&gt; JaxbUtil.unmarshal(inputStream, KeyDataConfig.class))</span>
+<span class="fc" id="L212">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L214">        return Collections.unmodifiableList(privateKeyData);</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
