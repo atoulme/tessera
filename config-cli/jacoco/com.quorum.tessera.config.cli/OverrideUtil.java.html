@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OverrideUtil.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config-cli</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.cli</a> &gt; <span class="el_source">OverrideUtil.java</span></div><h1>OverrideUtil.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.cli;
+
+import com.quorum.tessera.config.Config;
+import com.quorum.tessera.reflect.ReflectCallback;
+import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.xml.bind.annotation.XmlElement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public interface OverrideUtil {
+
+<span class="fc" id="L30">    Logger LOGGER = LoggerFactory.getLogger(OverrideUtil.class);</span>
+
+<span class="fc" id="L32">    List&lt;Class&gt; SIMPLE_TYPES = Collections.unmodifiableList(</span>
+<span class="fc" id="L33">            Arrays.asList(String.class,Path.class, Integer.class, Boolean.class, Long.class));</span>
+
+<span class="fc" id="L35">    Map&lt;Class&lt;?&gt;, Class&lt;?&gt;&gt; PRIMATIVE_LOOKUP = Collections.unmodifiableMap(new HashMap&lt;Class&lt;?&gt;, Class&lt;?&gt;&gt;() {</span>
+        {
+<span class="fc" id="L37">            put(Boolean.TYPE, Boolean.class);</span>
+<span class="fc" id="L38">            put(Byte.TYPE, Byte.class);</span>
+<span class="fc" id="L39">            put(Character.TYPE, Character.class);</span>
+<span class="fc" id="L40">            put(Short.TYPE, Short.class);</span>
+<span class="fc" id="L41">            put(Integer.TYPE, Integer.class);</span>
+<span class="fc" id="L42">            put(Long.TYPE, Long.class);</span>
+<span class="fc" id="L43">            put(Double.TYPE, Double.class);</span>
+<span class="fc" id="L44">            put(Float.TYPE, Float.class);</span>
+<span class="fc" id="L45">            put(Void.TYPE, Void.TYPE);</span>
+<span class="fc" id="L46">        }</span>
+    });
+
+    static Map&lt;String, Class&gt; buildConfigOptions() {
+<span class="fc" id="L50">        return fields(null, Config.class);</span>
+    }
+
+    static String resolveName(Field field) {
+<span class="fc bfc" id="L54" title="All 2 branches covered.">        if (!field.isAnnotationPresent(XmlElement.class)) {</span>
+<span class="fc" id="L55">            return field.getName();</span>
+        }
+<span class="fc" id="L57">        final XmlElement xmlElement = field.getAnnotation(XmlElement.class);</span>
+<span class="fc" id="L58">        String name = xmlElement.name();</span>
+<span class="fc bfc" id="L59" title="All 2 branches covered.">        return Objects.equals(&quot;##default&quot;, name) ? field.getName() : name;</span>
+    }
+
+    static Class resolveCollectionParameter(Type type) {
+
+<span class="fc" id="L64">        return Stream.of(type)</span>
+<span class="fc" id="L65">                .map(ParameterizedType.class::cast)</span>
+<span class="fc" id="L66">                .map(pt -&gt; pt.getActualTypeArguments()[0])</span>
+<span class="fc" id="L67">                .map(Type::getTypeName)</span>
+<span class="fc" id="L68">                .map(n -&gt; ReflectCallback.execute(() -&gt; Class.forName(n))).findAny().get();</span>
+
+    }
+
+    static boolean isSimple(Field field) {
+<span class="fc" id="L73">        return isSimple(field.getType());</span>
+    }
+
+    static boolean isSimple(Class type) {
+
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (type.isPrimitive()) {</span>
+<span class="fc" id="L79">            return true;</span>
+        }
+
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        if (type.getPackage() == null) {</span>
+<span class="fc" id="L83">            return true;</span>
+        }
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (SIMPLE_TYPES.contains(type)) {</span>
+<span class="fc" id="L87">            return true;</span>
+        }
+
+<span class="fc" id="L90">        return type.isEnum();</span>
+    }
+
+    static Map&lt;String, Class&gt; fields(String prefix, Class type) {
+
+<span class="fc" id="L95">        String amendedPrefix = Optional.ofNullable(prefix)</span>
+<span class="fc" id="L96">                .map(s -&gt; s.concat(&quot;.&quot;))</span>
+<span class="fc" id="L97">                .orElse(&quot;&quot;);</span>
+
+<span class="fc" id="L99">        Map&lt;String, Class&gt; list = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        for (Field field : type.getDeclaredFields()) {</span>
+
+<span class="fc bfc" id="L102" title="All 2 branches covered.">            if (isSimple(field)) {</span>
+
+<span class="fc" id="L104">                list.put(amendedPrefix + resolveName(field), field.getType());</span>
+<span class="fc" id="L105">                continue;</span>
+            }
+
+<span class="fc bfc" id="L108" title="All 2 branches covered.">            if (field.getType().getPackage().equals(Config.class.getPackage())) {</span>
+<span class="fc" id="L109">                list.putAll(fields(amendedPrefix + resolveName(field), field.getType()));</span>
+            }
+
+<span class="fc bfc" id="L112" title="All 2 branches covered.">            if (Collection.class.isAssignableFrom(field.getType())) {</span>
+<span class="fc" id="L113">                Class t = resolveCollectionParameter(field.getGenericType());</span>
+
+<span class="fc bfc" id="L115" title="All 2 branches covered.">                if (isSimple(t)) {</span>
+<span class="fc" id="L116">                    final Class arrayType = toArrayType(t);</span>
+<span class="fc" id="L117">                    list.put(amendedPrefix + resolveName(field), arrayType);</span>
+
+<span class="fc" id="L119">                } else {</span>
+<span class="fc" id="L120">                    list.putAll(fields(amendedPrefix + resolveName(field), t));</span>
+                }
+            }
+        }
+
+<span class="fc" id="L125">        return list;</span>
+
+    }
+
+    static &lt;T&gt; Class&lt;T[]&gt; toArrayType(Class&lt;T&gt; t) {
+<span class="fc" id="L130">        return (Class&lt;T[]&gt;) Array.newInstance(t, 0).getClass();</span>
+    }
+
+    /**
+     * Directly set field values using relection.
+     *
+     * @param root
+     * @param path
+     * @param value
+     */
+    static void setValue(Object root, String path, String... value) {
+
+<span class="fc" id="L142">        final ListIterator&lt;String&gt; pathTokens = Arrays.asList(path.split(&quot;\\.&quot;)).listIterator();</span>
+
+<span class="fc" id="L144">        final Class rootType = root.getClass();</span>
+
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        while (pathTokens.hasNext()) {</span>
+
+<span class="fc" id="L148">            final String token = pathTokens.next();</span>
+<span class="fc" id="L149">            final Field field = resolveField(rootType, token);</span>
+<span class="fc" id="L150">            field.setAccessible(true);</span>
+
+<span class="fc" id="L152">            final Class fieldType = field.getType();</span>
+
+<span class="fc bfc" id="L154" title="All 2 branches covered.">            if (Collection.class.isAssignableFrom(fieldType)) {</span>
+
+<span class="fc" id="L156">                final Class genericType = resolveCollectionParameter(field.getGenericType());</span>
+
+<span class="fc" id="L158">                List list = (List) Optional.ofNullable(getValue(root, field))</span>
+<span class="fc" id="L159">                        .orElse(new ArrayList&lt;&gt;());</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">                if (isSimple(genericType)) {</span>
+
+<span class="fc" id="L162">                    List convertedValues = (List) Stream.of(value)</span>
+<span class="fc" id="L163">                            .map(v -&gt; convertTo(genericType, v))</span>
+<span class="fc" id="L164">                            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L166">                    setValue(root, field, convertedValues);</span>
+
+<span class="fc" id="L168">                } else {</span>
+
+<span class="fc" id="L170">                    List&lt;String&gt; builder = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L171">                    pathTokens.forEachRemaining(builder::add);</span>
+<span class="fc" id="L172">                    String nestedPath = builder.stream().collect(Collectors.joining(&quot;.&quot;));</span>
+
+<span class="fc" id="L174">                    final Object[] newList = Arrays.copyOf(list.toArray(), value.length);</span>
+
+<span class="fc bfc" id="L176" title="All 2 branches covered.">                    for (int i = 0; i &lt; value.length; i++) {</span>
+<span class="fc" id="L177">                        final String v = value[i];</span>
+
+<span class="fc" id="L179">                        final Object nestedObject = Optional.ofNullable(newList[i])</span>
+<span class="fc" id="L180">                                .orElse(createInstance(genericType));</span>
+
+<span class="fc" id="L182">                        initialiseNestedObjects(nestedObject);</span>
+
+<span class="fc" id="L184">                        setValue(nestedObject, nestedPath, v);</span>
+<span class="fc" id="L185">                        newList[i] = nestedObject;</span>
+                    }
+<span class="fc" id="L187">                    setValue(root, field, Arrays.asList(newList));</span>
+
+                }
+
+<span class="fc bfc" id="L191" title="All 2 branches covered.">            } else if (isSimple(fieldType)) {</span>
+<span class="fc" id="L192">                Class convertedType = PRIMATIVE_LOOKUP.getOrDefault(fieldType, fieldType);</span>
+<span class="fc" id="L193">                Object convertedValue = convertTo(convertedType, value[0]);</span>
+<span class="fc" id="L194">                setValue(root, field, convertedValue);</span>
+
+<span class="fc" id="L196">            } else {</span>
+
+<span class="fc" id="L198">                Object nestedObject = getOrCreate(root, field);</span>
+<span class="fc" id="L199">                List&lt;String&gt; builder = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L200">                pathTokens.forEachRemaining(builder::add);</span>
+<span class="fc" id="L201">                String nestedPath = builder.stream().collect(Collectors.joining(&quot;.&quot;));</span>
+<span class="fc" id="L202">                setValue(nestedObject, nestedPath, value);</span>
+
+<span class="fc" id="L204">                setValue(root, field, nestedObject);</span>
+            }
+
+<span class="fc" id="L207">        }</span>
+
+<span class="fc" id="L209">    }</span>
+
+    static &lt;T&gt; T getOrCreate(Object from, Field field) {
+<span class="fc" id="L212">        T value = getValue(from, field);</span>
+<span class="fc" id="L213">        return Optional.ofNullable(value)</span>
+<span class="fc" id="L214">                .orElse((T) createInstance(field.getType()));</span>
+    }
+
+    static &lt;T&gt; T getValue(Object from, Field field) {
+<span class="fc" id="L218">        return ReflectCallback.execute(() -&gt; {</span>
+<span class="fc" id="L219">            return (T) field.get(from);</span>
+        });
+    }
+
+    static void setValue(Object obj, Field field, Object value) {
+<span class="fc" id="L224">        ReflectCallback.execute(() -&gt; {</span>
+<span class="fc" id="L225">            field.set(obj, value);</span>
+<span class="fc" id="L226">            return null;</span>
+        });
+<span class="fc" id="L228">    }</span>
+
+    static Field resolveField(Class type, String name) {
+<span class="fc" id="L231">        LOGGER.debug(&quot;Resolving {}#{}&quot;, type, name);</span>
+
+<span class="fc" id="L233">        return Stream.of(type.getDeclaredFields())</span>
+<span class="fc" id="L234">                .filter(f -&gt; f.isAnnotationPresent(XmlElement.class))</span>
+<span class="fc" id="L235">                .filter(f -&gt; f.getAnnotation(XmlElement.class).name().equals(name))</span>
+<span class="fc" id="L236">                .findAny()</span>
+<span class="fc" id="L237">                .orElseGet(() -&gt; ReflectCallback.execute(() -&gt; type.getDeclaredField(name)));</span>
+    }
+
+    static &lt;T&gt; T createInstance(Class&lt;T&gt; type) {
+
+<span class="fc" id="L242">        return ReflectCallback.execute(() -&gt; {</span>
+<span class="fc" id="L243">            Method factoryMethod = type.getDeclaredMethod(&quot;create&quot;);</span>
+<span class="fc" id="L244">            factoryMethod.setAccessible(true);</span>
+<span class="fc" id="L245">            final Object instance = factoryMethod.invoke(null);</span>
+<span class="fc" id="L246">            initialiseNestedObjects(instance);</span>
+<span class="fc" id="L247">            return (T) instance;</span>
+        });
+
+    }
+
+    static Class classForName(String classname) {
+<span class="fc" id="L253">        return ReflectCallback.execute(() -&gt; Class.forName(classname));</span>
+    }
+
+    static void initialiseNestedObjects(Object obj) {
+<span class="fc" id="L257">        ReflectCallback.execute(() -&gt; {</span>
+<span class="fc" id="L258">            Class type = obj.getClass();</span>
+<span class="fc" id="L259">            Field[] fields = type.getDeclaredFields();</span>
+
+<span class="fc bfc" id="L261" title="All 2 branches covered.">            for (Field field : fields) {</span>
+<span class="fc" id="L262">                field.setAccessible(true);</span>
+<span class="fc" id="L263">                Class fieldType = field.getType();</span>
+<span class="fc bfc" id="L264" title="All 2 branches covered.">                if (isSimple(fieldType)) {</span>
+<span class="fc" id="L265">                    continue;</span>
+                }
+
+<span class="fc bfc" id="L268" title="All 2 branches covered.">                if (Collection.class.isAssignableFrom(fieldType)) {</span>
+<span class="fc" id="L269">                    setValue(obj, field, new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L270">                    continue;</span>
+                }
+
+<span class="fc" id="L273">                Object nestedObject = createInstance(fieldType);</span>
+<span class="fc" id="L274">                initialiseNestedObjects(nestedObject);</span>
+<span class="fc" id="L275">                setValue(obj, field, nestedObject);</span>
+
+            }
+<span class="fc" id="L278">            return null;</span>
+        });
+
+<span class="fc" id="L281">    }</span>
+
+    static &lt;T&gt; T convertTo(Class&lt;T&gt; type, String value) {
+
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        if (Objects.isNull(value)) {</span>
+<span class="fc" id="L286">            return null;</span>
+        }
+
+<span class="fc bfc" id="L289" title="All 2 branches covered.">        if (String.class.equals(type)) {</span>
+<span class="fc" id="L290">            return (T) value;</span>
+        }
+
+<span class="fc bfc" id="L293" title="All 2 branches covered.">        if (Path.class.equals(type)) {</span>
+<span class="fc" id="L294">            return (T) Paths.get(value);</span>
+        }
+
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        if (type.isEnum()) {</span>
+<span class="fc" id="L298">            return (T) Enum.valueOf(type.asSubclass(Enum.class), value);</span>
+        }
+
+<span class="fc" id="L301">        return SIMPLE_TYPES.stream()</span>
+<span class="fc" id="L302">                .filter(t -&gt; t.equals(type))</span>
+<span class="fc" id="L303">                .findFirst()</span>
+<span class="fc" id="L304">                .map(c -&gt; ReflectCallback.execute(() -&gt; c.getDeclaredMethod(&quot;valueOf&quot;, String.class)))</span>
+<span class="fc" id="L305">                .map(m -&gt; ReflectCallback.execute(() -&gt; m.invoke(null, value)))</span>
+<span class="fc" id="L306">                .map(type::cast)</span>
+<span class="fc" id="L307">                .get();</span>
+
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DefaultCliAdapter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config-cli</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.cli</a> &gt; <span class="el_source">DefaultCliAdapter.java</span></div><h1>DefaultCliAdapter.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.cli;
+
+import com.quorum.tessera.config.ArgonOptions;
+import com.quorum.tessera.config.Config;
+import com.quorum.tessera.config.ConfigFactory;
+import com.quorum.tessera.config.keys.KeyGenerator;
+import com.quorum.tessera.config.keys.KeyGeneratorFactory;
+import com.quorum.tessera.config.util.JaxbUtil;
+import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.nio.file.StandardOpenOption.*;
+import static java.util.Collections.singletonList;
+import javax.validation.Validator;
+import javax.validation.*;
+
+<span class="fc" id="L31">public class DefaultCliAdapter implements CliAdapter {</span>
+
+<span class="fc" id="L33">    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultCliAdapter.class);</span>
+
+<span class="fc" id="L35">    private final KeyGeneratorFactory keyGeneratorFactory = KeyGeneratorFactory.newFactory();</span>
+
+<span class="fc" id="L37">    private final Validator validator = Validation.byDefaultProvider()</span>
+<span class="fc" id="L38">            .configure()</span>
+<span class="fc" id="L39">            .ignoreXmlConfiguration()</span>
+<span class="fc" id="L40">            .buildValidatorFactory()</span>
+<span class="fc" id="L41">            .getValidator();</span>
+
+    @Override
+    public CliResult execute(String... args) throws Exception {
+
+<span class="fc" id="L46">        Options options = new Options();</span>
+        
+
+<span class="fc" id="L49">        options.addOption(</span>
+<span class="fc" id="L50">                Option.builder(&quot;configfile&quot;)</span>
+<span class="fc" id="L51">                        .desc(&quot;Path to node configuration file&quot;)</span>
+<span class="fc" id="L52">                        .hasArg(true)</span>
+<span class="fc" id="L53">                        .optionalArg(false)</span>
+<span class="fc" id="L54">                        .numberOfArgs(1)</span>
+<span class="fc" id="L55">                        .argName(&quot;PATH&quot;)</span>
+<span class="fc" id="L56">                        .build());</span>
+
+        //If keygen then we require the path to the private key config path
+<span class="fc" id="L59">        options.addOption(</span>
+<span class="fc" id="L60">                Option.builder(&quot;keygen&quot;)</span>
+<span class="fc" id="L61">                        .desc(&quot;Path to private key config for generation of missing key files&quot;)</span>
+<span class="fc" id="L62">                        .hasArg(true)</span>
+<span class="fc" id="L63">                        .optionalArg(true)</span>
+<span class="fc" id="L64">                        .argName(&quot;PATH&quot;)</span>
+<span class="fc" id="L65">                        .build());</span>
+
+<span class="fc" id="L67">        options.addOption(</span>
+<span class="fc" id="L68">                Option.builder(&quot;filename&quot;)</span>
+<span class="fc" id="L69">                        .desc(&quot;Path to private key config for generation of missing key files&quot;)</span>
+<span class="fc" id="L70">                        .hasArg(true)</span>
+<span class="fc" id="L71">                        .optionalArg(true)</span>
+<span class="fc" id="L72">                        .argName(&quot;PATH&quot;)</span>
+<span class="fc" id="L73">                        .build());</span>
+
+<span class="fc" id="L75">        options.addOption(</span>
+<span class="fc" id="L76">                Option.builder(&quot;keygenconfig&quot;)</span>
+<span class="fc" id="L77">                        .desc(&quot;Path to private key config for generation of missing key files&quot;)</span>
+<span class="fc" id="L78">                        .hasArg(true)</span>
+<span class="fc" id="L79">                        .optionalArg(true)</span>
+<span class="fc" id="L80">                        .argName(&quot;PATH&quot;)</span>
+<span class="fc" id="L81">                        .build());</span>
+
+<span class="fc" id="L83">        options.addOption(</span>
+<span class="fc" id="L84">                Option.builder(&quot;output&quot;)</span>
+<span class="fc" id="L85">                        .desc(&quot;Generate updated config file with generated keys&quot;)</span>
+<span class="fc" id="L86">                        .hasArg(true)</span>
+<span class="fc" id="L87">                        .numberOfArgs(1)</span>
+<span class="fc" id="L88">                        .build());</span>
+
+<span class="fc" id="L90">        options.addOption(</span>
+<span class="fc" id="L91">                Option.builder(&quot;pidfile&quot;)</span>
+<span class="fc" id="L92">                        .desc(&quot;Path to pid file&quot;)</span>
+<span class="fc" id="L93">                        .hasArg(true)</span>
+<span class="fc" id="L94">                        .optionalArg(false)</span>
+<span class="fc" id="L95">                        .numberOfArgs(1)</span>
+<span class="fc" id="L96">                        .argName(&quot;PATH&quot;)</span>
+<span class="fc" id="L97">                        .build());</span>
+
+<span class="fc" id="L99">        Map&lt;String, Class&gt; overrideOptions = OverrideUtil.buildConfigOptions();</span>
+
+<span class="fc" id="L101">        overrideOptions.entrySet().forEach(entry -&gt; {</span>
+
+<span class="fc" id="L103">            final String optionName = entry.getKey();</span>
+
+<span class="fc" id="L105">            final boolean isCollection = entry.getValue().isArray();</span>
+
+<span class="fc" id="L107">            Class optionType = entry.getValue();</span>
+
+<span class="fc" id="L109">            Option.Builder optionBuilder = Option.builder()</span>
+<span class="fc" id="L110">                    .longOpt(optionName)</span>
+<span class="fc" id="L111">                    .desc(String.format(&quot;Override option for %s , type: %s&quot;, optionName, optionType.getSimpleName()));</span>
+
+<span class="fc bfc" id="L113" title="All 2 branches covered.">            if (isCollection) {</span>
+<span class="fc" id="L114">                optionBuilder.hasArgs()</span>
+<span class="fc" id="L115">                        .argName(optionType.getSimpleName().toUpperCase() + &quot;...&quot;);</span>
+            } else {
+<span class="fc" id="L117">                optionBuilder.hasArg()</span>
+<span class="fc" id="L118">                        .argName(optionType.getSimpleName().toUpperCase());</span>
+            }
+<span class="fc" id="L120">            options.addOption(optionBuilder.build());</span>
+
+<span class="fc" id="L122">        });</span>
+
+<span class="fc" id="L124">        final List&lt;String&gt; argsList = Arrays.asList(args);</span>
+<span class="fc bfc" id="L125" title="All 4 branches covered.">        if (argsList.contains(&quot;help&quot;) || argsList.isEmpty()) {</span>
+<span class="fc" id="L126">            HelpFormatter formatter = new HelpFormatter();</span>
+<span class="fc" id="L127">            formatter.setWidth(200);</span>
+<span class="fc" id="L128">            formatter.printHelp(&quot;tessera -configfile &lt;PATH&gt; [-keygen &lt;PATH&gt;] [-pidfile &lt;PATH&gt;]&quot;, options);</span>
+<span class="fc" id="L129">            return new CliResult(0, true, false, null);</span>
+        }
+
+<span class="fc" id="L132">        final CommandLineParser parser = new DefaultParser();</span>
+
+        try {
+
+<span class="fc" id="L136">            final CommandLine line = parser.parse(options, args);</span>
+
+<span class="fc" id="L138">            final Config config = parseConfig(line);</span>
+
+<span class="fc" id="L140">            overrideOptions.entrySet().forEach(dynEntry -&gt; {</span>
+<span class="fc" id="L141">                String optionName = dynEntry.getKey();</span>
+<span class="fc bfc" id="L142" title="All 2 branches covered.">                if (line.hasOption(optionName)) {</span>
+<span class="fc" id="L143">                    String[] values = line.getOptionValues(optionName);</span>
+<span class="fc" id="L144">                    LOGGER.debug(&quot;Setting : {} with value(s) {}&quot;, optionName, values);</span>
+<span class="fc" id="L145">                    OverrideUtil.setValue(config, optionName, values);</span>
+<span class="fc" id="L146">                    LOGGER.debug(&quot;Set : {} with value(s) {}&quot;, optionName, values);</span>
+                }
+<span class="fc" id="L148">            });</span>
+
+<span class="fc bfc" id="L150" title="All 2 branches covered.">            if (Objects.nonNull(config)) {</span>
+
+<span class="fc" id="L152">                Set&lt;ConstraintViolation&lt;Config&gt;&gt; violations = validator.validate(config);</span>
+<span class="fc bfc" id="L153" title="All 2 branches covered.">                if (!violations.isEmpty()) {</span>
+<span class="fc" id="L154">                    throw new ConstraintViolationException(violations);</span>
+                }
+            }
+
+<span class="fc bfc" id="L158" title="All 2 branches covered.">            if (line.hasOption(&quot;pidfile&quot;)) {</span>
+<span class="fc" id="L159">                createPidFile(line);</span>
+            }
+
+<span class="fc" id="L162">            return new CliResult(0, false, line.hasOption(&quot;keygen&quot;), config);</span>
+
+<span class="fc" id="L164">        } catch (ParseException exp) {</span>
+<span class="fc" id="L165">            throw new CliException(exp.getMessage());</span>
+        }
+
+    }
+
+    private Config parseConfig(CommandLine commandLine) throws IOException {
+
+<span class="fc" id="L172">        final ConfigFactory configFactory = ConfigFactory.create();</span>
+
+<span class="fc" id="L174">        final List&lt;String&gt; keyGenConfigs = this.getKeyGenConfig(commandLine);</span>
+<span class="fc" id="L175">        final ArgonOptions options = this.keygenConfiguration(commandLine).orElse(null);</span>
+
+<span class="fc" id="L177">        Config config = null;</span>
+
+<span class="fc bfc" id="L179" title="All 2 branches covered.">        if (commandLine.hasOption(&quot;configfile&quot;)) {</span>
+<span class="fc" id="L180">            final Path path = Paths.get(commandLine.getOptionValue(&quot;configfile&quot;));</span>
+
+<span class="fc bfc" id="L182" title="All 2 branches covered.">            if (!Files.exists(path)) {</span>
+<span class="fc" id="L183">                throw new FileNotFoundException(String.format(&quot;%s not found.&quot;, path));</span>
+            }
+
+<span class="fc" id="L186">            try (InputStream in = Files.newInputStream(path)) {</span>
+<span class="fc" id="L187">                config = configFactory.create(in, options, keyGenConfigs.toArray(new String[0]));</span>
+            }
+
+<span class="fc bfc" id="L190" title="All 2 branches covered.">            if (!keyGenConfigs.isEmpty()) {</span>
+                //we have generated new keys, so we need to output the new configuration
+<span class="fc" id="L192">                output(commandLine, config);</span>
+            }
+
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        } else if(commandLine.hasOption(&quot;keygen&quot;)) {</span>
+<span class="fc" id="L196">            final KeyGenerator generator = keyGeneratorFactory.create();</span>
+<span class="fc" id="L197">            keyGenConfigs</span>
+<span class="fc" id="L198">                    .stream()</span>
+<span class="fc" id="L199">                    .map(name -&gt; generator.generate(name, options))</span>
+<span class="fc" id="L200">                    .collect(Collectors.toList());</span>
+<span class="fc" id="L201">        } else {</span>
+<span class="fc" id="L202">            throw new CliException(&quot;One or both: -configfile &lt;PATH&gt; or -keygen options are required.&quot;);</span>
+        }
+
+<span class="fc" id="L205">        return config;</span>
+    }
+
+    private List&lt;String&gt; getKeyGenConfig(CommandLine commandLine) {
+
+<span class="fc bfc" id="L210" title="All 2 branches covered.">        if (commandLine.hasOption(&quot;keygen&quot;)) {</span>
+
+<span class="fc bfc" id="L212" title="All 2 branches covered.">            if (commandLine.hasOption(&quot;filename&quot;)) {</span>
+
+<span class="fc" id="L214">                final String keyNames = commandLine.getOptionValue(&quot;filename&quot;);</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">                if (keyNames != null) {</span>
+<span class="fc" id="L216">                    return Stream.of(keyNames.split(&quot;,&quot;)).collect(Collectors.toList());</span>
+                }
+
+            }
+
+<span class="fc" id="L221">            return singletonList(&quot;&quot;);</span>
+        }
+
+<span class="fc" id="L224">        return new ArrayList&lt;&gt;();</span>
+    }
+
+    private static Optional&lt;ArgonOptions&gt; keygenConfiguration(final CommandLine commandLine) throws IOException {
+<span class="fc bfc" id="L228" title="All 2 branches covered.">        if (commandLine.hasOption(&quot;keygenconfig&quot;)) {</span>
+<span class="fc" id="L229">            final String pathName = commandLine.getOptionValue(&quot;keygenconfig&quot;);</span>
+<span class="fc" id="L230">            final InputStream configStream = Files.newInputStream(Paths.get(pathName));</span>
+
+<span class="fc" id="L232">            ArgonOptions argonOptions = JaxbUtil.unmarshal(configStream, ArgonOptions.class);</span>
+<span class="fc" id="L233">            return Optional.of(argonOptions);</span>
+        }
+<span class="fc" id="L235">        return Optional.empty();</span>
+    }
+
+    private static void output(CommandLine commandLine, Config config) throws IOException {
+
+<span class="fc bfc" id="L240" title="All 2 branches covered.">        if (commandLine.hasOption(&quot;output&quot;)) {</span>
+<span class="fc" id="L241">            final Path outputConfigFile = Paths.get(commandLine.getOptionValue(&quot;output&quot;));</span>
+
+<span class="fc" id="L243">            try (OutputStream out = Files.newOutputStream(outputConfigFile, CREATE_NEW)) {</span>
+<span class="fc" id="L244">                JaxbUtil.marshal(config, out);</span>
+            }
+<span class="fc" id="L246">        } else {</span>
+<span class="fc" id="L247">            JaxbUtil.marshal(config, System.out);</span>
+        }
+<span class="fc" id="L249">    }</span>
+
+    private static void createPidFile(CommandLine commandLine) throws IOException {
+
+<span class="fc" id="L253">        final Path pidFilePath = Paths.get(commandLine.getOptionValue(&quot;pidfile&quot;));</span>
+
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (Files.exists(pidFilePath)) {</span>
+<span class="fc" id="L256">            LOGGER.info(&quot;File already exists {}&quot;, pidFilePath);</span>
+        } else {
+<span class="fc" id="L258">            Files.createFile(pidFilePath);</span>
+<span class="fc" id="L259">            LOGGER.info(&quot;Created pid file {}&quot;, pidFilePath);</span>
+        }
+
+<span class="fc" id="L262">        final String pid = ManagementFactory.getRuntimeMXBean().getName().split(&quot;@&quot;)[0];</span>
+
+<span class="fc" id="L264">        try (final OutputStream stream = Files.newOutputStream(pidFilePath, CREATE, TRUNCATE_EXISTING)) {</span>
+<span class="fc" id="L265">            stream.write(pid.getBytes(StandardCharsets.UTF_8));</span>
+        }
+<span class="fc" id="L267">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
