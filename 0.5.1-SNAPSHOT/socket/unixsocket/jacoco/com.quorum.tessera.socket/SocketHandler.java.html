@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SocketHandler.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">unixsocket</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.socket</a> &gt; <span class="el_source">SocketHandler.java</span></div><h1>SocketHandler.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.socket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+/**
+ * Handles a single request from the Unix Socket
+ * Run asynchronously to allow the socket server to listen for other connections
+ * whilst this request is being dealt with.
+ */
+public class SocketHandler implements Runnable {
+
+<span class="fc" id="L17">    private static final Logger LOGGER = LoggerFactory.getLogger(SocketHandler.class);</span>
+
+    private final UnixDomainServerSocket unixSocket;
+
+    private final HttpProxyFactory httpConnectionFactory;
+
+<span class="fc" id="L23">    public SocketHandler(final UnixDomainServerSocket unixSocket, final HttpProxyFactory httpConnectionFactory) {</span>
+<span class="fc" id="L24">        this.unixSocket = Objects.requireNonNull(unixSocket);</span>
+<span class="fc" id="L25">        this.httpConnectionFactory = Objects.requireNonNull(httpConnectionFactory);</span>
+<span class="fc" id="L26">    }</span>
+
+    /**
+     * Deals with a server request by reading all the bytes from the request,
+     * establishing an HTTP connection to the local server, and writing the bytes.
+     *
+     * Does the reverse for the response (read from HTTP, write to socket)
+     */
+    @Override
+    public void run() {
+
+<span class="fc" id="L37">        final HttpProxy httpProxy = this.createHttpServerConnection();</span>
+
+        //Read the request from the socket and send it to the HTTP server
+<span class="fc" id="L40">        final byte[] message = unixSocket.read();</span>
+<span class="fc" id="L41">        LOGGER.debug(&quot;Received message on socket: {}&quot;, new String(message, UTF_8));</span>
+<span class="fc" id="L42">        httpProxy.sendRequest(message);</span>
+
+        //Return the HTTP response to the socket
+<span class="fc" id="L45">        final byte[] response = httpProxy.getResponse();</span>
+<span class="fc" id="L46">        LOGGER.debug(&quot;Received http response: {}&quot;, new String(response, UTF_8));</span>
+<span class="fc" id="L47">        unixSocket.write(response);</span>
+
+<span class="fc" id="L49">        unixSocket.close();</span>
+<span class="fc" id="L50">        httpProxy.disconnect();</span>
+<span class="fc" id="L51">    }</span>
+
+    /**
+     * Create a connection to the HTTP/S server
+     *
+     * @return the connection HTTP/S connection to send the data over
+     */
+    private HttpProxy createHttpServerConnection() {
+
+<span class="fc" id="L60">        final HttpProxy httpProxy = httpConnectionFactory.create();</span>
+
+        // TODO: add configurable number of attempts, instead of looping forever
+<span class="fc" id="L63">        boolean connected = false;</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">        while (!connected) {</span>
+<span class="fc" id="L65">            LOGGER.debug(&quot;Attempting connection to HTTP server...&quot;);</span>
+<span class="fc" id="L66">            connected = httpProxy.connect();</span>
+        }
+
+<span class="fc" id="L69">        LOGGER.debug(&quot;Connected to HTTP server&quot;);</span>
+
+<span class="fc" id="L71">        return httpProxy;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
