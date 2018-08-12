@@ -20,6 +20,12 @@
         <value>0.5.1-20180812.175221-1</value>
         <updated>20180812175221</updated>
       </snapshotVersion>
+      <snapshotVersion>
+        <classifier>cli</classifier>
+        <extension>jar</extension>
+        <value>0.5.1-20180812.175221-1</value>
+        <updated>20180812175221</updated>
+      </snapshotVersion>
     </snapshotVersions>
   </versioning>
 </metadata>
