@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrivateKeyData.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config</a> &gt; <span class="el_source">PrivateKeyData.java</span></div><h1>PrivateKeyData.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlSchemaType;
+import javax.xml.bind.annotation.XmlType;
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(factoryMethod = &quot;create&quot;)
+public class PrivateKeyData extends ConfigItem {
+
+    @XmlElement(name = &quot;bytes&quot;)
+    @XmlSchemaType(name = &quot;anyURI&quot;)
+    private final String value;
+
+    @XmlElement
+    @XmlSchemaType(name = &quot;anyURI&quot;)
+    private final String snonce;
+
+    @XmlElement
+    @XmlSchemaType(name = &quot;anyURI&quot;)
+    private final String asalt;
+
+    @XmlElement
+    @XmlSchemaType(name = &quot;anyURI&quot;)
+    private final String sbox;
+
+    @XmlElement(name = &quot;aopts&quot;)
+    private final ArgonOptions argonOptions;
+
+    @XmlElement
+    @XmlSchemaType(name = &quot;anyURI&quot;)
+    private final String password;
+
+<span class="fc" id="L36">    public PrivateKeyData(String value, String snonce, String asalt, String sbox, ArgonOptions argonOptions, String password) {</span>
+<span class="fc" id="L37">        this.value = value;</span>
+<span class="fc" id="L38">        this.snonce = snonce;</span>
+<span class="fc" id="L39">        this.asalt = asalt;</span>
+<span class="fc" id="L40">        this.sbox = sbox;</span>
+<span class="fc" id="L41">        this.argonOptions = argonOptions;</span>
+<span class="fc" id="L42">        this.password = password;</span>
+<span class="fc" id="L43">    }</span>
+
+    private static PrivateKeyData create() {
+<span class="fc" id="L46">        return new PrivateKeyData(null, null, null, null, null, null);</span>
+    }
+
+    public String getValue() {
+<span class="fc" id="L50">        return value;</span>
+    }
+
+    public String getSnonce() {
+<span class="fc" id="L54">        return snonce;</span>
+    }
+
+    public String getAsalt() {
+<span class="fc" id="L58">        return asalt;</span>
+    }
+
+    public String getSbox() {
+<span class="fc" id="L62">        return sbox;</span>
+    }
+
+    public ArgonOptions getArgonOptions() {
+<span class="fc" id="L66">        return argonOptions;</span>
+    }
+
+    public String getPassword() {
+<span class="fc" id="L70">        return password;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

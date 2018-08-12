@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SslConfigValidator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config.constraints</a> &gt; <span class="el_source">SslConfigValidator.java</span></div><h1>SslConfigValidator.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config.constraints;
+
+
+import com.quorum.tessera.config.SslAuthenticationMode;
+import com.quorum.tessera.config.SslConfig;
+import com.quorum.tessera.config.SslTrustMode;
+
+import javax.validation.ConstraintValidator;
+import javax.validation.ConstraintValidatorContext;
+import java.nio.file.Files;
+import java.util.Objects;
+
+<span class="fc" id="L13">public class SslConfigValidator implements ConstraintValidator&lt;ValidSsl,SslConfig&gt; {</span>
+
+    private ValidSsl validSsl;
+
+    @Override
+    public void initialize(ValidSsl validSsl) {
+<span class="fc" id="L19">        this.validSsl = validSsl;</span>
+<span class="fc" id="L20">    }</span>
+
+    @Override
+    public boolean isValid(SslConfig sslConfig, ConstraintValidatorContext context) {
+
+<span class="fc" id="L25">        context.disableDefaultConstraintViolation();</span>
+
+<span class="fc bfc" id="L27" title="All 2 branches covered.">        if (validSsl.checkSslValid()){</span>
+
+<span class="fc bfc" id="L29" title="All 2 branches covered.">            if (Objects.isNull(sslConfig)) {</span>
+<span class="fc" id="L30">                return true;</span>
+            }
+
+<span class="fc bfc" id="L33" title="All 2 branches covered.">            if (sslConfig.getTls() == SslAuthenticationMode.STRICT) {</span>
+
+<span class="fc bfc" id="L35" title="All 2 branches covered.">                if (!sslConfig.isGenerateKeyStoreIfNotExisted()) {</span>
+
+<span class="fc bfc" id="L37" title="All 2 branches covered.">                    if (!isServerKeyStoreConfigValid(sslConfig, context) ||</span>
+<span class="fc bfc" id="L38" title="All 2 branches covered.">                        !isClientKeyStoreConfigValid(sslConfig, context)) {</span>
+<span class="fc" id="L39">                        return false;</span>
+                    }
+                }
+
+<span class="fc bfc" id="L43" title="All 2 branches covered.">                if (!isTrustModeConfigValid(sslConfig, context)) {</span>
+<span class="fc" id="L44">                    return false;</span>
+                }
+
+<span class="fc bfc" id="L47" title="All 2 branches covered.">                if (!isServerConfigValidForWhiteListMode(sslConfig, context)) {</span>
+<span class="fc" id="L48">                    return false;</span>
+                }
+
+<span class="fc bfc" id="L51" title="All 2 branches covered.">                if (!isServerConfigValidForCAMode(sslConfig, context)) {</span>
+<span class="fc" id="L52">                    return false;</span>
+                }
+
+<span class="fc bfc" id="L55" title="All 2 branches covered.">                if (!isClientConfigValidForWhiteListMode(sslConfig, context)) {</span>
+<span class="fc" id="L56">                    return false;</span>
+                }
+
+<span class="fc bfc" id="L59" title="All 2 branches covered.">                if (!isClientConfigValidForCAMode(sslConfig, context)) {</span>
+<span class="fc" id="L60">                    return false;</span>
+                }
+            }
+        }
+<span class="fc" id="L64">        return true;</span>
+    }
+
+    private boolean isServerKeyStoreConfigValid(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L68" title="All 2 branches covered.">        if (Objects.isNull(sslConfig.getServerKeyStore()) ||</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">            Objects.isNull(sslConfig.getServerKeyStorePassword()) ||</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            Files.notExists(sslConfig.getServerKeyStore())) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getServerTlsKeyPath()) ||</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">                Objects.isNull(sslConfig.getServerTlsCertificatePath()) ||</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">                Files.notExists(sslConfig.getServerTlsKeyPath()) ||</span>
+<span class="fc bfc" id="L74" title="All 2 branches covered.">                Files.notExists(sslConfig.getServerTlsCertificatePath())) {</span>
+<span class="fc" id="L75">                setMessage(&quot;Server keystore configuration not valid. &quot; +</span>
+                    &quot;Please ensure keystore file exists or keystore password not null, &quot; +
+                    &quot;otherwise please set keystore generation flag to true to have keystore created&quot;, context);
+<span class="fc" id="L78">                return false;</span>
+            }
+        }
+<span class="fc" id="L81">        return true;</span>
+    }
+
+    private boolean isClientKeyStoreConfigValid(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L85" title="All 2 branches covered.">        if (Objects.isNull(sslConfig.getClientKeyStore()) ||</span>
+<span class="fc bfc" id="L86" title="All 2 branches covered.">            Objects.isNull(sslConfig.getClientKeyStorePassword()) ||</span>
+<span class="fc bfc" id="L87" title="All 2 branches covered.">            Files.notExists(sslConfig.getClientKeyStore())) {</span>
+<span class="fc bfc" id="L88" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getClientTlsKeyPath()) ||</span>
+<span class="fc bfc" id="L89" title="All 2 branches covered.">                Objects.isNull(sslConfig.getClientTlsCertificatePath()) ||</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                Files.notExists(sslConfig.getClientTlsKeyPath()) ||</span>
+<span class="fc bfc" id="L91" title="All 2 branches covered.">                Files.notExists(sslConfig.getClientTlsCertificatePath())) {</span>
+<span class="fc" id="L92">                setMessage(&quot;Client keystore configuration not valid. &quot; +</span>
+                    &quot;Please ensure keystore file exists or keystore password not null, &quot; +
+                    &quot;otherwise please set keystore generation flag to true to have keystore created&quot;, context);
+<span class="fc" id="L95">                return false;</span>
+            }
+        }
+<span class="fc" id="L98">        return true;</span>
+    }
+
+    private boolean isTrustModeConfigValid(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L102" title="All 4 branches covered.">        if (Objects.isNull(sslConfig.getServerTrustMode()) || Objects.isNull(sslConfig.getClientTrustMode())) {</span>
+<span class="fc" id="L103">            setMessage(&quot;Trust mode does not have valid value. Please check server/client trust mode config&quot;, context);</span>
+<span class="fc" id="L104">            return false;</span>
+        }
+<span class="fc" id="L106">        return true;</span>
+    }
+
+    private boolean isServerConfigValidForWhiteListMode(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        if (sslConfig.getServerTrustMode() == SslTrustMode.WHITELIST) {</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getKnownClientsFile()) ||</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">                Files.notExists(sslConfig.getKnownClientsFile())) {</span>
+<span class="fc" id="L113">                setMessage(&quot;Known clients file not found. If server trust mode is WHITELIST, known clients file must be provided&quot;, context);</span>
+<span class="fc" id="L114">                return false;</span>
+            }
+        }
+<span class="fc" id="L117">        return true;</span>
+    }
+
+    private boolean isServerConfigValidForCAMode(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        if (sslConfig.getServerTrustMode() == SslTrustMode.CA) {</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getServerTrustStore()) ||</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                Objects.isNull(sslConfig.getServerTrustStorePassword()) ||</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                Files.notExists(sslConfig.getServerTrustStore())) {</span>
+<span class="fc bfc" id="L125" title="All 2 branches covered.">                if (Objects.isNull(sslConfig.getServerTrustCertificates())) {</span>
+<span class="fc" id="L126">                    setMessage(&quot;Trust store config not valid. If server trust mode is CA, trust store must exist and not be null&quot;, context);</span>
+<span class="fc" id="L127">                    return false;</span>
+                }
+            }
+        }
+<span class="fc" id="L131">        return true;</span>
+    }
+
+    private boolean isClientConfigValidForWhiteListMode(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L135" title="All 2 branches covered.">        if (sslConfig.getClientTrustMode() == SslTrustMode.WHITELIST) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getKnownServersFile()) ||</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">                Files.notExists(sslConfig.getKnownServersFile())) {</span>
+<span class="fc" id="L138">                setMessage(&quot;Known servers file not found. If client trust mode is WHITELIST, known servers file must be provided&quot;, context);</span>
+<span class="fc" id="L139">                return false;</span>
+            }
+        }
+<span class="fc" id="L142">        return true;</span>
+    }
+
+    private boolean isClientConfigValidForCAMode(SslConfig sslConfig, ConstraintValidatorContext context) {
+<span class="fc bfc" id="L146" title="All 2 branches covered.">        if (sslConfig.getClientTrustMode() == SslTrustMode.CA) {</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">            if (Objects.isNull(sslConfig.getClientTrustStore()) ||</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">                Objects.isNull(sslConfig.getClientTrustStorePassword()) ||</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">                Files.notExists(sslConfig.getClientTrustStore())) {</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">                if (Objects.isNull(sslConfig.getClientTrustCertificates())) {</span>
+<span class="fc" id="L151">                    setMessage(&quot;Trust store config not valid. If client trust mode is CA, trust store must exist and not be null&quot;, context);</span>
+<span class="fc" id="L152">                    return false;</span>
+                }
+            }
+        }
+<span class="fc" id="L156">        return true;</span>
+    }
+
+
+
+    private void setMessage(final String message, ConstraintValidatorContext context) {
+<span class="fc" id="L162">        context</span>
+<span class="fc" id="L163">            .buildConstraintViolationWithTemplate(message)</span>
+<span class="fc" id="L164">            .addConstraintViolation();</span>
+<span class="fc" id="L165">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

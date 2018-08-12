@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SslConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">config</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.config</a> &gt; <span class="el_source">SslConfig.java</span></div><h1>SslConfig.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.config;
+
+import com.quorum.tessera.config.adapters.PathAdapter;
+import javax.validation.constraints.NotNull;
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.nio.file.Path;
+import java.util.List;
+
+@XmlAccessorType(XmlAccessType.FIELD)
+@XmlType(factoryMethod = &quot;create&quot;)
+public class SslConfig {
+
+    @NotNull
+    @XmlElement(required = true)
+    private final SslAuthenticationMode tls;
+
+    @XmlElement(defaultValue = &quot;false&quot;)
+    private final boolean generateKeyStoreIfNotExisted;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path serverKeyStore;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path serverTlsKeyPath;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path serverTlsCertificatePath;
+
+    @XmlElement
+    private final String serverKeyStorePassword;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path serverTrustStore;
+
+    @XmlElement
+    @XmlJavaTypeAdapter(value = PathAdapter.class)
+    private final List&lt;Path&gt; serverTrustCertificates;
+
+    @XmlElement
+    private final String serverTrustStorePassword;
+
+    @XmlElement
+    private final SslTrustMode serverTrustMode;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path clientKeyStore;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path clientTlsKeyPath;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path clientTlsCertificatePath;
+
+    @XmlElement
+    private final String clientKeyStorePassword;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path clientTrustStore;
+
+    @XmlElement
+    @XmlJavaTypeAdapter(value = PathAdapter.class)
+    private final List&lt;Path&gt; clientTrustCertificates;
+
+    @XmlElement
+    private final String clientTrustStorePassword;
+
+    @XmlElement
+    private final SslTrustMode clientTrustMode;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path knownClientsFile;
+
+    @XmlElement(type = String.class)
+    @XmlJavaTypeAdapter(PathAdapter.class)
+    private final Path knownServersFile;
+
+    public SslConfig(
+            SslAuthenticationMode tls,
+            boolean generateKeyStoreIfNotExisted,
+            Path serverKeyStore,
+            String serverKeyStorePassword,
+            Path serverTrustStore,
+            String serverTrustStorePassword,
+            SslTrustMode serverTrustMode,
+            Path clientKeyStore,
+            String clientKeyStorePassword,
+            Path clientTrustStore,
+            String clientTrustStorePassword,
+            SslTrustMode clientTrustMode,
+            Path knownClientsFile,
+            Path knownServersFile,
+            List&lt;Path&gt; serverTrustCertificates,
+            List&lt;Path&gt; clientTrustCertificates,
+            Path serverTlsKeyPath,
+            Path serverTlsCertificatePath,
+            Path clientTlsKeyPath,
+            Path clientTlsCertificatePath
+<span class="fc" id="L111">    ) {</span>
+
+<span class="fc" id="L113">        this.tls = tls;</span>
+<span class="fc" id="L114">        this.generateKeyStoreIfNotExisted = generateKeyStoreIfNotExisted;</span>
+<span class="fc" id="L115">        this.serverKeyStore = serverKeyStore;</span>
+<span class="fc" id="L116">        this.serverTrustCertificates = serverTrustCertificates;</span>
+<span class="fc" id="L117">        this.serverKeyStorePassword = serverKeyStorePassword;</span>
+<span class="fc" id="L118">        this.serverTrustStore = serverTrustStore;</span>
+<span class="fc" id="L119">        this.serverTrustStorePassword = serverTrustStorePassword;</span>
+<span class="fc" id="L120">        this.serverTrustMode = serverTrustMode;</span>
+<span class="fc" id="L121">        this.clientKeyStore = clientKeyStore;</span>
+<span class="fc" id="L122">        this.clientTrustCertificates = clientTrustCertificates;</span>
+<span class="fc" id="L123">        this.clientKeyStorePassword = clientKeyStorePassword;</span>
+<span class="fc" id="L124">        this.clientTrustStore = clientTrustStore;</span>
+<span class="fc" id="L125">        this.clientTrustStorePassword = clientTrustStorePassword;</span>
+<span class="fc" id="L126">        this.clientTrustMode = clientTrustMode;</span>
+<span class="fc" id="L127">        this.knownClientsFile = knownClientsFile;</span>
+<span class="fc" id="L128">        this.knownServersFile = knownServersFile;</span>
+<span class="fc" id="L129">        this.serverTlsKeyPath = serverTlsKeyPath;</span>
+<span class="fc" id="L130">        this.serverTlsCertificatePath = serverTlsCertificatePath;</span>
+<span class="fc" id="L131">        this.clientTlsKeyPath = clientTlsKeyPath;</span>
+<span class="fc" id="L132">        this.clientTlsCertificatePath = clientTlsCertificatePath;</span>
+
+<span class="fc" id="L134">    }</span>
+
+    private SslConfig() {
+<span class="fc" id="L137">        this(null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null,null,null,null,null);</span>
+<span class="fc" id="L138">    }</span>
+
+    private static SslConfig create() {
+<span class="fc" id="L141">        return new SslConfig();</span>
+    }
+
+    public SslAuthenticationMode getTls() {
+<span class="fc" id="L145">        return tls;</span>
+    }
+
+    public boolean isGenerateKeyStoreIfNotExisted() {
+<span class="fc" id="L149">        return generateKeyStoreIfNotExisted;</span>
+    }
+
+    public Path getServerKeyStore() {
+<span class="fc" id="L153">        return serverKeyStore;</span>
+    }
+
+    public String getServerKeyStorePassword() {
+<span class="fc" id="L157">        return serverKeyStorePassword;</span>
+    }
+
+    public Path getServerTrustStore() {
+<span class="fc" id="L161">        return serverTrustStore;</span>
+    }
+
+    public String getServerTrustStorePassword() {
+<span class="fc" id="L165">        return serverTrustStorePassword;</span>
+    }
+
+    public SslTrustMode getServerTrustMode() {
+<span class="fc" id="L169">        return serverTrustMode;</span>
+    }
+
+    public Path getClientKeyStore() {
+<span class="fc" id="L173">        return clientKeyStore;</span>
+    }
+
+    public String getClientKeyStorePassword() {
+<span class="fc" id="L177">        return clientKeyStorePassword;</span>
+    }
+
+    public Path getClientTrustStore() {
+<span class="fc" id="L181">        return clientTrustStore;</span>
+    }
+
+    public String getClientTrustStorePassword() {
+<span class="fc" id="L185">        return clientTrustStorePassword;</span>
+    }
+
+    public SslTrustMode getClientTrustMode() {
+<span class="fc" id="L189">        return clientTrustMode;</span>
+    }
+
+    public Path getKnownClientsFile() {
+<span class="fc" id="L193">        return knownClientsFile;</span>
+    }
+
+    public Path getKnownServersFile() {
+<span class="fc" id="L197">        return knownServersFile;</span>
+    }
+
+    public List&lt;Path&gt; getServerTrustCertificates() {
+<span class="fc" id="L201">        return serverTrustCertificates;</span>
+    }
+
+    public List&lt;Path&gt; getClientTrustCertificates() {
+<span class="fc" id="L205">        return clientTrustCertificates;</span>
+    }
+
+    public Path getServerTlsKeyPath() {
+<span class="fc" id="L209">        return serverTlsKeyPath;</span>
+    }
+
+    public Path getServerTlsCertificatePath() {
+<span class="fc" id="L213">        return serverTlsCertificatePath;</span>
+    }
+
+    public Path getClientTlsKeyPath() {
+<span class="fc" id="L217">        return clientTlsKeyPath;</span>
+    }
+
+    public Path getClientTlsCertificatePath() {
+<span class="fc" id="L221">        return clientTlsCertificatePath;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>
