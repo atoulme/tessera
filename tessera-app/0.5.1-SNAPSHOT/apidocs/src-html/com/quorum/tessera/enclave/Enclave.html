@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package com.quorum.tessera.enclave;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import com.quorum.tessera.enclave.model.MessageHash;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import com.quorum.tessera.nacl.Key;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import com.quorum.tessera.transaction.model.EncodedPayloadWithRecipients;<a name="line.5"></a>
+<span class="sourceLineNo">006</span><a name="line.6"></a>
+<span class="sourceLineNo">007</span>import java.util.Optional;<a name="line.7"></a>
+<span class="sourceLineNo">008</span><a name="line.8"></a>
+<span class="sourceLineNo">009</span>public interface Enclave {<a name="line.9"></a>
+<span class="sourceLineNo">010</span><a name="line.10"></a>
+<span class="sourceLineNo">011</span>    /**<a name="line.11"></a>
+<span class="sourceLineNo">012</span>     * Deletes a particular transaction from the enclave<a name="line.12"></a>
+<span class="sourceLineNo">013</span>     * Returns whether the desired state was achieved<a name="line.13"></a>
+<span class="sourceLineNo">014</span>     * i.e. {@code true} if the message no longer exists, {@code false} if the message still exists<a name="line.14"></a>
+<span class="sourceLineNo">015</span>     * &lt;p&gt;<a name="line.15"></a>
+<span class="sourceLineNo">016</span>     * Note that the method will return true if trying to delete a non-existant message,<a name="line.16"></a>
+<span class="sourceLineNo">017</span>     * since the desired state of the message no longer existing is satisfied<a name="line.17"></a>
+<span class="sourceLineNo">018</span>     *<a name="line.18"></a>
+<span class="sourceLineNo">019</span>     * @param hashBytes The hash of the payload that should be deleted<a name="line.19"></a>
+<span class="sourceLineNo">020</span>     */<a name="line.20"></a>
+<span class="sourceLineNo">021</span>    void delete(byte[] hashBytes);<a name="line.21"></a>
+<span class="sourceLineNo">022</span><a name="line.22"></a>
+<span class="sourceLineNo">023</span>    /**<a name="line.23"></a>
+<span class="sourceLineNo">024</span>     * Retrieves the message specified by the provided hash,<a name="line.24"></a>
+<span class="sourceLineNo">025</span>     * and uses the provided key. If key is not provided,<a name="line.25"></a>
+<span class="sourceLineNo">026</span>     * method will use the default public key, which is public key of the current node<a name="line.26"></a>
+<span class="sourceLineNo">027</span>     * @param key The hash of payload to retrieve<a name="line.27"></a>
+<span class="sourceLineNo">028</span>     * @param to<a name="line.28"></a>
+<span class="sourceLineNo">029</span>     * @return<a name="line.29"></a>
+<span class="sourceLineNo">030</span>     */<a name="line.30"></a>
+<span class="sourceLineNo">031</span>    byte[] receive(byte[] key, Optional&lt;byte[]&gt; to);<a name="line.31"></a>
+<span class="sourceLineNo">032</span><a name="line.32"></a>
+<span class="sourceLineNo">033</span>    /**<a name="line.33"></a>
+<span class="sourceLineNo">034</span>     * Create an EncodedPayloadWithRecipients, then store this into the database,<a name="line.34"></a>
+<span class="sourceLineNo">035</span>     * also publish the the payload to all recipients<a name="line.35"></a>
+<span class="sourceLineNo">036</span>     * If sender public key is not provided, method will use default public key,<a name="line.36"></a>
+<span class="sourceLineNo">037</span>     * which is public key of the current node<a name="line.37"></a>
+<span class="sourceLineNo">038</span>     * @param sender Public key of the sender<a name="line.38"></a>
+<span class="sourceLineNo">039</span>     * @param recipients List of recipients for this transaction<a name="line.39"></a>
+<span class="sourceLineNo">040</span>     * @param message<a name="line.40"></a>
+<span class="sourceLineNo">041</span>     * @return The message hash returned after the transaction is  persisted.<a name="line.41"></a>
+<span class="sourceLineNo">042</span>     * This message hash can be used to retrieve the transaction.<a name="line.42"></a>
+<span class="sourceLineNo">043</span>     */<a name="line.43"></a>
+<span class="sourceLineNo">044</span>    MessageHash store(Optional&lt;byte[]&gt; sender, byte[][] recipients, byte[] message);<a name="line.44"></a>
+<span class="sourceLineNo">045</span><a name="line.45"></a>
+<span class="sourceLineNo">046</span>    /**<a name="line.46"></a>
+<span class="sourceLineNo">047</span>     * Decode raw payload from byte array to EncodedPayloadWithRecipients,<a name="line.47"></a>
+<span class="sourceLineNo">048</span>     * and persist to the database<a name="line.48"></a>
+<span class="sourceLineNo">049</span>     * @param encodedPayloadWithRecipients<a name="line.49"></a>
+<span class="sourceLineNo">050</span>     * @return The message hash returned after the transaction is  persisted.<a name="line.50"></a>
+<span class="sourceLineNo">051</span>     * This message hash can be used to retrieve the transaction<a name="line.51"></a>
+<span class="sourceLineNo">052</span>     */<a name="line.52"></a>
+<span class="sourceLineNo">053</span>    MessageHash storePayload(byte[] encodedPayloadWithRecipients);<a name="line.53"></a>
+<span class="sourceLineNo">054</span><a name="line.54"></a>
+<span class="sourceLineNo">055</span>    /**<a name="line.55"></a>
+<span class="sourceLineNo">056</span>     * Publish the encoded payload to the specified recipient.<a name="line.56"></a>
+<span class="sourceLineNo">057</span>     * This method will strip out irrelevant recipients and recipient boxes from the payload<a name="line.57"></a>
+<span class="sourceLineNo">058</span>     * before sending. If the recipient<a name="line.58"></a>
+<span class="sourceLineNo">059</span>     * @param encodedPayload Payload to send to recipient specified<a name="line.59"></a>
+<span class="sourceLineNo">060</span>     * @param recipient public key of the recipient to send payload to<a name="line.60"></a>
+<span class="sourceLineNo">061</span>     */<a name="line.61"></a>
+<span class="sourceLineNo">062</span>    void publishPayload(EncodedPayloadWithRecipients encodedPayload, Key recipient);<a name="line.62"></a>
+<span class="sourceLineNo">063</span><a name="line.63"></a>
+<span class="sourceLineNo">064</span>    /**<a name="line.64"></a>
+<span class="sourceLineNo">065</span>     * Retrieves all payloads that the provided key is a recipient to,<a name="line.65"></a>
+<span class="sourceLineNo">066</span>     * then publish the payload to all recipients in the recipient list of the payload<a name="line.66"></a>
+<span class="sourceLineNo">067</span>     * @param recipientKey The key for which to search over<a name="line.67"></a>
+<span class="sourceLineNo">068</span>     */<a name="line.68"></a>
+<span class="sourceLineNo">069</span>    void resendAll(byte[] recipientKey);<a name="line.69"></a>
+<span class="sourceLineNo">070</span><a name="line.70"></a>
+<span class="sourceLineNo">071</span>    /**<a name="line.71"></a>
+<span class="sourceLineNo">072</span>     * Fetch a transaction with the given hash<a name="line.72"></a>
+<span class="sourceLineNo">073</span>     * The transaction should have originated from this node and the<a name="line.73"></a>
+<span class="sourceLineNo">074</span>     * given key should appear in the recipients list<a name="line.74"></a>
+<span class="sourceLineNo">075</span>     *<a name="line.75"></a>
+<span class="sourceLineNo">076</span>     * @param hash the hash of the transaction to find<a name="line.76"></a>
+<span class="sourceLineNo">077</span>     * @param recipient the recipient of the transaction<a name="line.77"></a>
+<span class="sourceLineNo">078</span>     * @return The payload that was originally distributed to the node that managed the recipient<a name="line.78"></a>
+<span class="sourceLineNo">079</span>     */<a name="line.79"></a>
+<span class="sourceLineNo">080</span>    EncodedPayloadWithRecipients fetchTransactionForRecipient(MessageHash hash, Key recipient);<a name="line.80"></a>
+<span class="sourceLineNo">081</span>}<a name="line.81"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Tessera.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera.api</a> &gt; <span class="el_source">Tessera.java</span></div><h1>Tessera.java</h1><pre class="source lang-java linenums">package com.quorum.tessera.api;
+
+import com.quorum.tessera.api.filter.GlobalFilter;
+import com.quorum.tessera.api.filter.Logged;
+import com.quorum.tessera.service.locator.ServiceLocator;
+
+import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.core.Application;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * The main application that is submitted to the HTTP server
+ * Contains all the service classes created by the service locator
+ */
+@Logged
+@GlobalFilter
+@ApplicationPath(&quot;/&quot;)
+public class Tessera extends Application {
+
+    private final ServiceLocator serviceLocator;
+
+    private final String contextName;
+
+<span class="fc" id="L26">    public Tessera(final ServiceLocator serviceLocator, final String contextName) {</span>
+<span class="fc" id="L27">        this.serviceLocator = Objects.requireNonNull(serviceLocator);</span>
+<span class="fc" id="L28">        this.contextName = Objects.requireNonNull(contextName);</span>
+<span class="fc" id="L29">    }</span>
+
+    @Override
+    public Set&lt;Object&gt; getSingletons() {
+<span class="fc" id="L33">        final String apiPackageName = getClass().getPackage().getName();</span>
+
+<span class="fc" id="L35">        return serviceLocator.getServices(contextName).stream()</span>
+<span class="fc" id="L36">            .filter(Objects::nonNull)</span>
+<span class="fc" id="L37">            .filter(o -&gt; Objects.nonNull(o.getClass()))</span>
+<span class="fc" id="L38">            .filter(o -&gt; Objects.nonNull(o.getClass().getPackage()))</span>
+<span class="fc" id="L39">            .filter(o -&gt; o.getClass().getPackage().getName().startsWith(apiPackageName))</span>
+<span class="fc" id="L40">            .collect(Collectors.toSet());</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Launcher.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tessera-app</a> &gt; <a href="index.source.html" class="el_package">com.quorum.tessera</a> &gt; <span class="el_source">Launcher.java</span></div><h1>Launcher.java</h1><pre class="source lang-java linenums">package com.quorum.tessera;
+
+import com.quorum.tessera.api.Tessera;
+import com.quorum.tessera.config.Config;
+import com.quorum.tessera.config.ServerConfig;
+import com.quorum.tessera.config.cli.CliDelegate;
+import com.quorum.tessera.config.cli.CliResult;
+import com.quorum.tessera.server.RestServer;
+import com.quorum.tessera.server.RestServerFactory;
+import com.quorum.tessera.service.locator.ServiceLocator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import java.net.URI;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import javax.json.JsonException;
+
+/**
+ * The main entry point for the application. This just starts up the application
+ * in the embedded container.
+ */
+<span class="nc" id="L28">public class Launcher {</span>
+
+<span class="nc" id="L30">    private static final Logger LOGGER = LoggerFactory.getLogger(Launcher.class);</span>
+
+    public static void main(final String... args) throws Exception {
+
+        try {
+<span class="nc" id="L35">            final CliResult cliResult = CliDelegate.instance().execute(args);</span>
+
+<span class="nc bnc" id="L37" title="All 2 branches missed.">            if (cliResult.isHelpOn()) {</span>
+<span class="nc" id="L38">                System.exit(0);</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">            } else if (cliResult.getStatus() != 0) {</span>
+<span class="nc" id="L40">                System.exit(cliResult.getStatus());</span>
+            }
+
+<span class="nc bnc" id="L43" title="All 4 branches missed.">            if (!cliResult.getConfig().isPresent() &amp;&amp; cliResult.isKeyGenOn()) {</span>
+<span class="nc" id="L44">                System.exit(cliResult.getStatus());</span>
+            }
+
+<span class="nc" id="L47">            final Config config = cliResult.getConfig()</span>
+<span class="nc" id="L48">                    .orElseThrow(() -&gt; new NoSuchElementException(&quot;No Config found. Tessera will not run&quot;));</span>
+
+<span class="nc" id="L50">            final URI uri = new URI(config.getServerConfig().getHostName() + &quot;:&quot; + config.getServerConfig().getPort());</span>
+
+<span class="nc" id="L52">            runWebServer(uri, config.getServerConfig());</span>
+
+<span class="nc" id="L54">            System.exit(0);</span>
+
+<span class="nc" id="L56">        } catch (final ConstraintViolationException ex) {</span>
+<span class="nc" id="L57">            Set&lt;ConstraintViolation&lt;?&gt;&gt; violations = ex.getConstraintViolations();</span>
+
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            for (ConstraintViolation&lt;?&gt; violation : violations) {</span>
+<span class="nc" id="L60">                System.out.println(&quot;Config validation issue: &quot; + violation.getPropertyPath() + &quot; &quot; + violation.getMessage());</span>
+<span class="nc" id="L61">            }</span>
+<span class="nc" id="L62">            System.exit(1);</span>
+<span class="nc" id="L63">        } catch (com.quorum.tessera.config.ConfigException ex) {</span>
+<span class="nc" id="L64">            Throwable cause = resolveRooCause(ex);</span>
+
+<span class="nc bnc" id="L66" title="All 2 branches missed.">            if (JsonException.class.isInstance(cause)) {</span>
+<span class="nc" id="L67">                System.err.println(&quot;Invalid json, error is &quot; + cause.getMessage());</span>
+            } else {
+<span class="nc" id="L69">                System.err.println(Objects.toString(cause));</span>
+            }
+<span class="nc" id="L71">            System.exit(3);</span>
+<span class="nc" id="L72">        } catch (com.quorum.tessera.config.cli.CliException ex) {</span>
+<span class="nc" id="L73">            System.err.println(ex.getMessage());</span>
+<span class="nc" id="L74">            System.exit(4);</span>
+<span class="nc" id="L75">        } catch (Throwable ex) {</span>
+
+<span class="nc" id="L77">            Optional.ofNullable(ex.getMessage()).ifPresent(System.err::println);</span>
+<span class="nc" id="L78">            System.exit(2);</span>
+<span class="nc" id="L79">        }</span>
+<span class="nc" id="L80">    }</span>
+
+    static Throwable resolveRooCause(Throwable ex) {
+<span class="nc bnc" id="L83" title="All 2 branches missed.">        if (Objects.nonNull(ex.getCause())) {</span>
+<span class="nc" id="L84">            return resolveRooCause(ex.getCause());</span>
+        }
+<span class="nc" id="L86">        return ex;</span>
+    }
+
+    private static void runWebServer(final URI serverUri, ServerConfig serverConfig) throws Exception {
+
+<span class="nc" id="L91">        final Tessera tessera = new Tessera(ServiceLocator.create(), &quot;tessera-spring.xml&quot;);</span>
+
+<span class="nc" id="L93">        final RestServer restServer = RestServerFactory.create().createServer(serverUri, tessera, serverConfig);</span>
+
+<span class="nc" id="L95">        CountDownLatch countDown = new CountDownLatch(1);</span>
+
+<span class="nc" id="L97">        Runtime.getRuntime().addShutdownHook(new Thread(() -&gt; {</span>
+            try {
+<span class="nc" id="L99">                restServer.stop();</span>
+<span class="nc" id="L100">            } catch (Exception ex) {</span>
+<span class="nc" id="L101">                LOGGER.error(null, ex);</span>
+            } finally {
+<span class="nc" id="L103">                countDown.countDown();</span>
+            }
+<span class="nc" id="L105">        }));</span>
+
+<span class="nc" id="L107">        restServer.start();</span>
+
+<span class="nc" id="L109">        countDown.await();</span>
+<span class="nc" id="L110">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.1.201803210924</span></div></body></html>

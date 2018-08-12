@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package com.quorum.tessera.node;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import com.quorum.tessera.nacl.Key;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import com.quorum.tessera.node.model.Party;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import com.quorum.tessera.node.model.PartyInfo;<a name="line.5"></a>
+<span class="sourceLineNo">006</span>import com.quorum.tessera.node.model.Recipient;<a name="line.6"></a>
+<span class="sourceLineNo">007</span>import com.quorum.tessera.util.BinaryEncoder;<a name="line.7"></a>
+<span class="sourceLineNo">008</span><a name="line.8"></a>
+<span class="sourceLineNo">009</span>import java.nio.ByteBuffer;<a name="line.9"></a>
+<span class="sourceLineNo">010</span>import java.util.Arrays;<a name="line.10"></a>
+<span class="sourceLineNo">011</span>import java.util.HashSet;<a name="line.11"></a>
+<span class="sourceLineNo">012</span>import java.util.List;<a name="line.12"></a>
+<span class="sourceLineNo">013</span>import java.util.Set;<a name="line.13"></a>
+<span class="sourceLineNo">014</span>import java.util.stream.Collectors;<a name="line.14"></a>
+<span class="sourceLineNo">015</span><a name="line.15"></a>
+<span class="sourceLineNo">016</span>import static java.nio.charset.StandardCharsets.UTF_8;<a name="line.16"></a>
+<span class="sourceLineNo">017</span><a name="line.17"></a>
+<span class="sourceLineNo">018</span>/**<a name="line.18"></a>
+<span class="sourceLineNo">019</span> * A parser for PartyInfo node discovery information<a name="line.19"></a>
+<span class="sourceLineNo">020</span> */<a name="line.20"></a>
+<span class="sourceLineNo">021</span>public interface PartyInfoParser extends BinaryEncoder {<a name="line.21"></a>
+<span class="sourceLineNo">022</span><a name="line.22"></a>
+<span class="sourceLineNo">023</span>    /**<a name="line.23"></a>
+<span class="sourceLineNo">024</span>     * Decodes a set of PartyInfo to the format that is shared between nodes<a name="line.24"></a>
+<span class="sourceLineNo">025</span>     *<a name="line.25"></a>
+<span class="sourceLineNo">026</span>     * @param encoded the encoded information that needs to be read<a name="line.26"></a>
+<span class="sourceLineNo">027</span>     * @return the decoded {@link PartyInfo} which contains the other nodes<a name="line.27"></a>
+<span class="sourceLineNo">028</span>     * information<a name="line.28"></a>
+<span class="sourceLineNo">029</span>     */<a name="line.29"></a>
+<span class="sourceLineNo">030</span>    default PartyInfo from(final byte[] encoded) {<a name="line.30"></a>
+<span class="sourceLineNo">031</span><a name="line.31"></a>
+<span class="sourceLineNo">032</span>        final ByteBuffer byteBuffer = ByteBuffer.wrap(encoded);<a name="line.32"></a>
+<span class="sourceLineNo">033</span><a name="line.33"></a>
+<span class="sourceLineNo">034</span>        final int urlLength = (int) byteBuffer.getLong();<a name="line.34"></a>
+<span class="sourceLineNo">035</span><a name="line.35"></a>
+<span class="sourceLineNo">036</span>        final byte[] urlBytes = new byte[urlLength];<a name="line.36"></a>
+<span class="sourceLineNo">037</span>        byteBuffer.get(urlBytes);<a name="line.37"></a>
+<span class="sourceLineNo">038</span>        final String url = new String(urlBytes, UTF_8);<a name="line.38"></a>
+<span class="sourceLineNo">039</span><a name="line.39"></a>
+<span class="sourceLineNo">040</span>        final int numberOfRecipients = (int) byteBuffer.getLong();<a name="line.40"></a>
+<span class="sourceLineNo">041</span><a name="line.41"></a>
+<span class="sourceLineNo">042</span>        final Set&lt;Recipient&gt; recipients = new HashSet&lt;&gt;();<a name="line.42"></a>
+<span class="sourceLineNo">043</span><a name="line.43"></a>
+<span class="sourceLineNo">044</span>        for (int i = 0; i &lt; numberOfRecipients; i++) {<a name="line.44"></a>
+<span class="sourceLineNo">045</span><a name="line.45"></a>
+<span class="sourceLineNo">046</span>            final int recipientElementCount = (int) byteBuffer.getLong();<a name="line.46"></a>
+<span class="sourceLineNo">047</span><a name="line.47"></a>
+<span class="sourceLineNo">048</span>            final int recipientKeyLength = (int) byteBuffer.getLong();<a name="line.48"></a>
+<span class="sourceLineNo">049</span>            final byte[] recipientKeyBytes = new byte[recipientKeyLength];<a name="line.49"></a>
+<span class="sourceLineNo">050</span>            byteBuffer.get(recipientKeyBytes);<a name="line.50"></a>
+<span class="sourceLineNo">051</span><a name="line.51"></a>
+<span class="sourceLineNo">052</span>            final int recipientUrlValueLength = (int) byteBuffer.getLong();<a name="line.52"></a>
+<span class="sourceLineNo">053</span>            final byte[] urlValueData = new byte[recipientUrlValueLength];<a name="line.53"></a>
+<span class="sourceLineNo">054</span>            byteBuffer.get(urlValueData);<a name="line.54"></a>
+<span class="sourceLineNo">055</span>            final String recipientUrl = new String(urlValueData, UTF_8);<a name="line.55"></a>
+<span class="sourceLineNo">056</span><a name="line.56"></a>
+<span class="sourceLineNo">057</span>            recipients.add(new Recipient(new Key(recipientKeyBytes), recipientUrl));<a name="line.57"></a>
+<span class="sourceLineNo">058</span><a name="line.58"></a>
+<span class="sourceLineNo">059</span>        }<a name="line.59"></a>
+<span class="sourceLineNo">060</span><a name="line.60"></a>
+<span class="sourceLineNo">061</span>        final int partyCount = (int) byteBuffer.getLong();<a name="line.61"></a>
+<span class="sourceLineNo">062</span><a name="line.62"></a>
+<span class="sourceLineNo">063</span>        final Party[] parties = new Party[partyCount];<a name="line.63"></a>
+<span class="sourceLineNo">064</span>        for (int i = 0; i &lt; partyCount; i++) {<a name="line.64"></a>
+<span class="sourceLineNo">065</span>            long partyElementLength = byteBuffer.getLong();<a name="line.65"></a>
+<span class="sourceLineNo">066</span>            byte[] ptyData = new byte[(int) partyElementLength];<a name="line.66"></a>
+<span class="sourceLineNo">067</span>            byteBuffer.get(ptyData);<a name="line.67"></a>
+<span class="sourceLineNo">068</span>            String ptyURL = new String(ptyData, UTF_8);<a name="line.68"></a>
+<span class="sourceLineNo">069</span>            parties[i] = new Party(ptyURL);<a name="line.69"></a>
+<span class="sourceLineNo">070</span>        }<a name="line.70"></a>
+<span class="sourceLineNo">071</span><a name="line.71"></a>
+<span class="sourceLineNo">072</span>        return new PartyInfo(url, recipients, new HashSet&lt;&gt;(Arrays.asList(parties)));<a name="line.72"></a>
+<span class="sourceLineNo">073</span>    }<a name="line.73"></a>
+<span class="sourceLineNo">074</span><a name="line.74"></a>
+<span class="sourceLineNo">075</span>    /**<a name="line.75"></a>
+<span class="sourceLineNo">076</span>     * Encodes a {@link PartyInfo} object to the defined structure that is<a name="line.76"></a>
+<span class="sourceLineNo">077</span>     * shared between nodes<a name="line.77"></a>
+<span class="sourceLineNo">078</span>     *<a name="line.78"></a>
+<span class="sourceLineNo">079</span>     * The result can be feed into {@link PartyInfoParser#from(byte[])} to<a name="line.79"></a>
+<span class="sourceLineNo">080</span>     * produce the input to this function.<a name="line.80"></a>
+<span class="sourceLineNo">081</span>     *<a name="line.81"></a>
+<span class="sourceLineNo">082</span>     * @param partyInfo the information to encode<a name="line.82"></a>
+<span class="sourceLineNo">083</span>     * @return the encoded result that should be shared with other nodes<a name="line.83"></a>
+<span class="sourceLineNo">084</span>     */<a name="line.84"></a>
+<span class="sourceLineNo">085</span>    default byte[] to(final PartyInfo partyInfo) {<a name="line.85"></a>
+<span class="sourceLineNo">086</span><a name="line.86"></a>
+<span class="sourceLineNo">087</span>        //prefix and url bytes<a name="line.87"></a>
+<span class="sourceLineNo">088</span>        final byte[] url = encodeField(partyInfo.getUrl().getBytes(UTF_8));<a name="line.88"></a>
+<span class="sourceLineNo">089</span><a name="line.89"></a>
+<span class="sourceLineNo">090</span>        //each element in the list is one encoded element from the map<a name="line.90"></a>
+<span class="sourceLineNo">091</span>        //so the prefix is always 2 (2 elements) and<a name="line.91"></a>
+<span class="sourceLineNo">092</span>        final List&lt;byte[]&gt; recipients = partyInfo.getRecipients()<a name="line.92"></a>
+<span class="sourceLineNo">093</span>            .stream()<a name="line.93"></a>
+<span class="sourceLineNo">094</span>            .map(r -&gt; new byte[][]{<a name="line.94"></a>
+<span class="sourceLineNo">095</span>                    r.getKey().getKeyBytes(),<a name="line.95"></a>
+<span class="sourceLineNo">096</span>                    r.getUrl().getBytes(UTF_8)<a name="line.96"></a>
+<span class="sourceLineNo">097</span>                }<a name="line.97"></a>
+<span class="sourceLineNo">098</span>            ).map(this::encodeArray)<a name="line.98"></a>
+<span class="sourceLineNo">099</span>            .collect(Collectors.toList());<a name="line.99"></a>
+<span class="sourceLineNo">100</span>        final int recipientLength = recipients.stream().mapToInt(r -&gt; r.length).sum();<a name="line.100"></a>
+<span class="sourceLineNo">101</span><a name="line.101"></a>
+<span class="sourceLineNo">102</span>        final List&lt;byte[]&gt; parties = partyInfo.getParties()<a name="line.102"></a>
+<span class="sourceLineNo">103</span>            .stream()<a name="line.103"></a>
+<span class="sourceLineNo">104</span>            .map(p -&gt; p.getUrl().getBytes(UTF_8))<a name="line.104"></a>
+<span class="sourceLineNo">105</span>            .collect(Collectors.toList());<a name="line.105"></a>
+<span class="sourceLineNo">106</span><a name="line.106"></a>
+<span class="sourceLineNo">107</span>        final byte[] partiesBytes = encodeArray(parties);<a name="line.107"></a>
+<span class="sourceLineNo">108</span><a name="line.108"></a>
+<span class="sourceLineNo">109</span>        final ByteBuffer byteBuffer = ByteBuffer<a name="line.109"></a>
+<span class="sourceLineNo">110</span>            .allocate(url.length + Long.BYTES + recipientLength + partiesBytes.length)<a name="line.110"></a>
+<span class="sourceLineNo">111</span>            .put(url)<a name="line.111"></a>
+<span class="sourceLineNo">112</span>            .putLong(partyInfo.getRecipients().size());<a name="line.112"></a>
+<span class="sourceLineNo">113</span><a name="line.113"></a>
+<span class="sourceLineNo">114</span>        recipients.forEach(byteBuffer::put);<a name="line.114"></a>
+<span class="sourceLineNo">115</span>        byteBuffer.put(partiesBytes);<a name="line.115"></a>
+<span class="sourceLineNo">116</span><a name="line.116"></a>
+<span class="sourceLineNo">117</span>        return byteBuffer.array();<a name="line.117"></a>
+<span class="sourceLineNo">118</span><a name="line.118"></a>
+<span class="sourceLineNo">119</span>    }<a name="line.119"></a>
+<span class="sourceLineNo">120</span><a name="line.120"></a>
+<span class="sourceLineNo">121</span>    /**<a name="line.121"></a>
+<span class="sourceLineNo">122</span>     * Creates a new parser with default settings<a name="line.122"></a>
+<span class="sourceLineNo">123</span>     *<a name="line.123"></a>
+<span class="sourceLineNo">124</span>     * @return a default parser<a name="line.124"></a>
+<span class="sourceLineNo">125</span>     */<a name="line.125"></a>
+<span class="sourceLineNo">126</span>    static PartyInfoParser create() {<a name="line.126"></a>
+<span class="sourceLineNo">127</span>        return new PartyInfoParser() {<a name="line.127"></a>
+<span class="sourceLineNo">128</span>        };<a name="line.128"></a>
+<span class="sourceLineNo">129</span>    }<a name="line.129"></a>
+<span class="sourceLineNo">130</span><a name="line.130"></a>
+<span class="sourceLineNo">131</span>}<a name="line.131"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
