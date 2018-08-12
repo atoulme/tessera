@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.quorum.tessera</groupId>
+  <artifactId>argon2</artifactId>
+  <versioning>
+    <versions>
+      <version>0.5.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20180812174737</lastUpdated>
+  </versioning>
+</metadata>
