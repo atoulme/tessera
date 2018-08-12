@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>com.quorum.tessera</groupId>
+  <artifactId>encryption</artifactId>
+  <versioning>
+    <versions>
+      <version>0.5.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20180812174752</lastUpdated>
+  </versioning>
+</metadata>
