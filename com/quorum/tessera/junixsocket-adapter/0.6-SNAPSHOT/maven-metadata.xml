@@ -26,6 +26,12 @@
         <value>0.6-20180815.144939-1</value>
         <updated>20180815144939</updated>
       </snapshotVersion>
+      <snapshotVersion>
+        <classifier>javadoc</classifier>
+        <extension>jar</extension>
+        <value>0.6-20180815.144939-1</value>
+        <updated>20180815144939</updated>
+      </snapshotVersion>
     </snapshotVersions>
   </versioning>
 </metadata>
