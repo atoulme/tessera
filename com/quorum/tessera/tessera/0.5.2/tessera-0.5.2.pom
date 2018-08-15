@@ -20,7 +20,7 @@
         <url>https://github.com/QuorumEngineering/tessera</url>
         <connection>scm:git:git://github.com/QuorumEngineering/tessera.git</connection>
         <developerConnection>scm:git:git@github.com:QuorumEngineering/tessera.git</developerConnection>
-        <tag>tessera-0.5.2</tag>
+        <tag>tessera-0.5.2.1</tag>
     </scm>
 
     <ciManagement>
